@@ -43,8 +43,7 @@ if ! exists asdf; then
   asdf global golang latest
 fi
 
-if ! [ greadlink -f $(exists vim) ]
-then
+if ! alias vim &>/dev/null; then
   echo ""
   echo "##############################"
   echo "# installing vim"
