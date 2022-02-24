@@ -27,10 +27,13 @@ brew install asdf
 echo -e "\n. $(brew --prefix asdf)/libexec/asdf.sh" >> ${ZDOTDIR:-~}/.zshrc
 asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
 asdf plugin-add yarn
+asdf plugin-add golang https://github.com/kennyp/asdf-golang.git
 asdf install nodejs latest
 asdf install yarn latest
+asdf install golang latest
 asdf global nodejs latest
 asdf global yarn latest
+asdf global golang latest
 
 echo "installing vim and nvim"
 echo ""
@@ -42,5 +45,5 @@ cp /.config/nvim/init.vim ~/.config/nvim/
 echo "install oh-my-zsh"
 echo ""
 curl -fsSL https://raw.github.com/ohmyzsh/master/tools/install.sh
-git clone https://github.com/spaceship-promp/spaceship-prompt.git "$ZSH_CUSTOM/themes/spaceship-prompt" --depth=1
+git clone https://github.com/spaceship-prompt/spaceship-prompt.git "$ZSH_CUSTOM/themes/spaceship-prompt" --depth=1
 ln -s "$ZSH_CUSTOM/themes/spaceship-prompt/spaceship.zsh-theme" "$ZSH_CUSTOM/themes/spaceship.zsh-theme"
