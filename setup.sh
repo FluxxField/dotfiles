@@ -28,7 +28,7 @@ brew install node
 brew install yarn
 brew install tmux
 
-which -s asdf
+where -s asdf
 if [[ $? != 0 ]]; then
   echo "##############################"
   echo "# installing asdf"
@@ -46,7 +46,7 @@ if [[ $? != 0 ]]; then
   asdf global golang latest
 fi
 
-which -s vim
+where -s vim
 if [[ $? != 0 ]]; then
   echo "##############################"
   echo "# installing vim"
@@ -54,7 +54,7 @@ if [[ $? != 0 ]]; then
   brew install vim
 fi
 
-which -s nvim
+where -s nvim
 if [[ $? != 0 ]]; then
   echo "##############################"
   echo "# installing neovim"
