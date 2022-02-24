@@ -52,10 +52,7 @@ if [[ $? != 0 ]]; then
   echo "# installing vim"
   echo "##############################"
   brew install vim
-fi
 
-where -s nvim
-if [[ $? != 0 ]]; then
   echo "##############################"
   echo "# installing neovim"
   echo "##############################"
