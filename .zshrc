@@ -113,6 +113,7 @@ source $ZSH/oh-my-zsh.sh
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias tmux="tmux -2"
 alias vim="nvim"
+alias pip="pip3"
 
 bindkey '^I' complete-word # tab | complete
 bindkey '^[[Z' autosuggest-execute # shift + tab | autosuggest

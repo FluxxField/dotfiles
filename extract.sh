@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/zsh
 
 cd "$(dirname "${BASH_SOURCE}")"
 
@@ -8,6 +8,11 @@ function extract() {
   rsync --exclude ".git/" \ --exclude "main.sh" \ --exclude "README.md" \ --exclude "LICENSE.txt" \ --exclude ".config/" -avh --no-perms . ~
   source ~/.zshrc
   vim +'PlugInstall --sync' +qa
+  npm install -g neovim
+  yarn global add neovim
+  python -m pip install pynvim --user
+  python3 -m pip install pynvim --user
+  python3 -m pip install --upgrade pip --user
 }
 
 if [[ "$1" == "--force" || "$1" == "-f" ]]
@@ -24,3 +29,5 @@ else
 fi
 
 unset extract
+
+vim +"checkhealth"
