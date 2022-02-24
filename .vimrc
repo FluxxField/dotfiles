@@ -122,7 +122,7 @@ set shell=$SHELL
 set diffopt+=vertical
 
 set nocompatible
-set encoding=utf-8
+set encoding=UTF-8
 
 " enable syntax highlighting
 syntax on
