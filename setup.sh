@@ -1,4 +1,4 @@
-#!/usr/bin/zsh
+#!/usr/bin/bash
 
 exists() {
   command -v "$1" >/dev/null 2>&1
@@ -11,16 +11,8 @@ then
   echo "##############################\n"
   curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
 else
-  echo "##############################"
-  echo "# updating brew"
-  echo "##############################\n"
   brew update
 fi
-
-echo "##############################"
-echo "# upgrading brew"
-echo "##############################\n"
-brew upgrade
 
 echo "##############################"
 echo "# installing packages"
@@ -87,3 +79,7 @@ then
   git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
 fi
 
+echo "##############################"
+echo "# upgrading brew"
+echo "##############################\n"
+brew upgrade
