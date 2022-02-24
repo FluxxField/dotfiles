@@ -4,8 +4,7 @@ exists() {
   command -v "$1"
 }
 
-if ! [[ exists brew ]]
-then
+if ! exists brew; then
   echo "##############################"
   echo "# installing brew"
   echo "##############################\n"
@@ -26,8 +25,7 @@ brew install node
 brew install yarn
 brew install tmux
 
-if ! [[ exists asdf ]]
-then
+if ! exists asdf; then
   echo ""
   echo "##############################"
   echo "# installing asdf"
@@ -45,7 +43,7 @@ then
   asdf global golang latest
 fi
 
-if ! [[ greadlink -f $(exists vim) ]]
+if ! [ greadlink -f $(exists vim) ]
 then
   echo ""
   echo "##############################"
@@ -54,8 +52,7 @@ then
   brew install vim
 fi
 
-if ! [[ exists nvim ]]
-then
+if ! exists nvim; then
   echo ""
   echo "##############################"
   echo "# installing neovim"
