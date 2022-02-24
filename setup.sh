@@ -1,6 +1,10 @@
 #!/usr/bin/zsh
 
-if [ ! command -v brew ]
+exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+if [ ! exists brew ]
 then
   echo "##############################"
   echo "# installing brew"
@@ -29,7 +33,7 @@ brew install node
 brew install yarn
 brew install tmux
 
-if [ ! command -v asdf ]
+if [ ! exists asdf ]
 then
   echo "##############################"
   echo "# installing asdf"
@@ -48,7 +52,7 @@ then
 fi
 
 # nvim is sym linked to vim
-if [ ! greadlink -f $(command -v vim) ]
+if [ ! greadlink -f $(exists vim) ]
 then
   echo "##############################"
   echo "# installing vim"
