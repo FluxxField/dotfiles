@@ -1,6 +1,6 @@
-#!/usr/bin/env zsh
+#!/usr/bin/zsh
 
-if [ ! command -v brew ]; then
+if [ ! command -v brew ] then
   echo "##############################"
   echo "# installing brew"
   echo "##############################\n"
@@ -28,7 +28,7 @@ brew install node
 brew install yarn
 brew install tmux
 
-if [ ! command -v asdf ]; then
+if [ ! command -v asdf ] then
   echo "##############################"
   echo "# installing asdf"
   echo "##############################\n"
@@ -46,14 +46,14 @@ if [ ! command -v asdf ]; then
 fi
 
 # nvim is sym linked to vim
-if [ ! greadlink -f $(command -v vim) ]; then
+if [ ! greadlink -f $(command -v vim) ] then
   echo "##############################"
   echo "# installing vim"
   echo "##############################\n"
   brew install vim
 fi
 
-if [ ! command -v nvim ]; then
+if [ ! command -v nvim ] then
   echo "##############################"
   echo "# installing neovim"
   echo "##############################\n"
@@ -62,7 +62,7 @@ if [ ! command -v nvim ]; then
   cp /.config/nvim/init.vim ~/.config/nvim/
 fi
 
-if [ ! -d ~/.oh-my-zsh ]; then
+if [ ! -d ~/.oh-my-zsh ] then
   echo "##############################"
   echo "# installing oh-my-zsh"
   echo "##############################\n"
