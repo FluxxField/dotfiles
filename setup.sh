@@ -19,6 +19,7 @@ brew install gnupg
 brew install grep
 brew install node
 brew install yarn
+brew install tmux
 
 echo "installing asdf"
 echo ""
@@ -36,7 +37,7 @@ echo ""
 brew install vim
 brew install neovim
 
-cp -R /.config/nvim/init.vim ~/.config/nvim/
+cp /.config/nvim/init.vim ~/.config/nvim/
 
 echo "install oh-my-zsh"
 echo ""
