@@ -1,4 +1,7 @@
 # dotfiles
+<img width="832" alt="Screen Shot 2022-02-24 at 2 15 57 PM" src="https://user-images.githubusercontent.com/39966609/155600895-de46ad3f-f730-4552-aa2b-a1c7df5a8849.png">
+
+<img width="299" alt="Screen Shot 2022-02-24 at 2 15 36 PM" src="https://user-images.githubusercontent.com/39966609/155600858-b4b1835e-73b6-4b7c-890b-4dfd8600963c.png">
 
 ## Requirments
 * iTerm2
