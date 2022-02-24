@@ -15,3 +15,6 @@ cd dotfiles && source setup.sh
 ```
 
 Once the setup script is done, run the extract script to grab the dotfiles and add them to your $HOME dir
+```
+source extract.sh
+```
