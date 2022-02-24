@@ -1,7 +1,6 @@
 #!/usr/bin/env zsh
 
-which -s brew
-if [[ $? != 0 ]]; then
+if [ ! where brew ]; then
   echo "##############################"
   echo "# installing brew"
   echo "##############################"
@@ -28,8 +27,7 @@ brew install node
 brew install yarn
 brew install tmux
 
-where -s asdf
-if [[ $? != 0 ]]; then
+if [ ! where asdf ]; then
   echo "##############################"
   echo "# installing asdf"
   echo "##############################"
@@ -46,8 +44,7 @@ if [[ $? != 0 ]]; then
   asdf global golang latest
 fi
 
-where -s vim
-if [[ $? != 0 ]]; then
+if [ ! where vim ]; then
   echo "##############################"
   echo "# installing vim"
   echo "##############################"
