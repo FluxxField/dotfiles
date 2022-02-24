@@ -4,7 +4,7 @@ if [ ! command -v brew ] then
   echo "##############################"
   echo "# installing brew"
   echo "##############################\n"
-  curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh;
+  curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
 else
   echo "##############################"
   echo "# updating brew"
