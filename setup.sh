@@ -1,36 +1,37 @@
 #!/usr/bin/env zsh
 
-if [ ! where brew ]; then
+if [ ! command -v brew ]; then
   echo "##############################"
   echo "# installing brew"
-  echo "##############################"
+  echo "##############################\n"
   curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh;
 else
   echo "##############################"
   echo "# updating brew"
-  echo "##############################"
+  echo "##############################\n"
   brew update
 fi
 
 echo "##############################"
 echo "# upgrading brew"
-echo "##############################"
+echo "##############################\n"
 brew upgrade
 
 echo "##############################"
 echo "# installing packages"
-echo "##############################"
+echo "##############################\n"
 brew install wget
+brow install coreutils
 brew install gnupg
 brew install grep
 brew install node
 brew install yarn
 brew install tmux
 
-if [ ! where asdf ]; then
+if [ ! command -v asdf ]; then
   echo "##############################"
   echo "# installing asdf"
-  echo "##############################"
+  echo "##############################\n"
   brew install asdf
   echo -e "\n. $(brew --prefix asdf)/libexec/asdf.sh" >> ${ZDOTDIR:-~}/.zshrcw
   asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
@@ -44,15 +45,18 @@ if [ ! where asdf ]; then
   asdf global golang latest
 fi
 
-if [ ! where vim ]; then
+# nvim is sym linked to vim
+if [ ! greadlink -f $(command -v vim) ]; then
   echo "##############################"
   echo "# installing vim"
-  echo "##############################"
+  echo "##############################\n"
   brew install vim
+fi
 
+if [ ! command -v nvim ]; then
   echo "##############################"
   echo "# installing neovim"
-  echo "##############################"
+  echo "##############################\n"
   brew install neovim
   # overridding init.vim with repo version (points to .vimrc)
   cp /.config/nvim/init.vim ~/.config/nvim/
@@ -61,7 +65,7 @@ fi
 if [ ! -d ~/.oh-my-zsh ]; then
   echo "##############################"
   echo "# installing oh-my-zsh"
-  echo "##############################"
+  echo "##############################\n"
   # Install oh-my-zsh
   curl -fsSL https://raw.github.com/ohmyzsh/master/tools/install.sh
   # install spaceship theme for oh-my-zsh
