@@ -17,12 +17,12 @@ git clone https://github.com/FluxxField/dotfiles.git
 
 cd into the dir and run the setup script to install brew and all of the packages that are needed
 ```
-cd dotfiles && source setup.sh
+cd dotfiles && sh setup.sh
 ```
 
 Once the setup script is done, run the extract script to grab the dotfiles and add them to your $HOME dir
 ```
-source extract.sh
+sh extract.sh
 ```
 
 ### iTerm2 theme 

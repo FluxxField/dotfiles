@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/zsh
 
 exists() {
   command -v "$1" &>/dev/null
