@@ -24,6 +24,8 @@ brew install grep
 brew install node
 brew install yarn
 brew install tmux
+brew tap homebrew/cask-fonts
+brew install --cask font-hack-nerd-font
 
 if ! exists asdf; then
   echo ""
