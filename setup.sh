@@ -25,6 +25,7 @@ brew install node
 brew install yarn
 brew tap homebrew/cask-fonts
 brew install --cask font-hack-nerd-font
+brew install --cask font-victor-mono
 
 if ! exists tmux; then
   echo ""
@@ -157,3 +158,12 @@ echo "##############################"
 echo "# upgrading brew"
 echo "##############################\n"
 brew upgrade
+
+if ! [[ -d "./one-dark-pro-item" ]]
+then
+  echo ""
+  echo "##############################"
+  echo "# installing one-dark-pro-iterm"
+  echo "##############################\n"
+  git clone https://github.com/chinhsuanwu/one-dark-pro-iterm.git
+fi

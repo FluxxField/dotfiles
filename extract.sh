@@ -7,7 +7,6 @@ git pull origin main
 function extract() {
   rsync --exclude ".git/" \ --exclude "main.sh" \ --exclude "README.md" \ --exclude "LICENSE.txt" \ --exclude ".config/" -avh --no-perms . ~
   source ~/.zshrc
-  source ~/.tmux.conf
   vim +'PlugInstall --sync' +qa
 }
 
