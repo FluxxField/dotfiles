@@ -23,9 +23,25 @@ brew install gnupg
 brew install grep
 brew install node
 brew install yarn
-brew install tmux
 brew tap homebrew/cask-fonts
 brew install --cask font-hack-nerd-font
+
+if ! exists tmux; then
+  echo ""
+  echo "##############################"
+  echo "# installing tmux"
+  echo "##############################\n"
+  brew install tmux
+fi
+
+if ! [[ ~/.tmux/plugins/tmp ]]
+then
+  echo ""
+  echo "##############################"
+  echo "# installing tmux plugin manager"
+  echo "##############################\n"
+  git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+fi
 
 if ! exists asdf; then
   echo ""
