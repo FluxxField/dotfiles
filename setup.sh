@@ -23,10 +23,21 @@ brew install gnupg
 brew install grep
 brew install node
 brew install yarn
-brew install python
 brew tap homebrew/cask-fonts
 brew install --cask font-hack-nerd-font
 brew install --cask font-victor-mono
+
+if ! exists python; then
+  echo ""
+  echo "##############################"
+  echo "# installing tmux"
+  echo "##############################\n"
+  brew install python
+fi
+
+python -m pip install pynvim --user
+python3 -m pip install pynvim --user
+python3 -m pip install --upgrade pip --user
 
 if ! exists tmux; then
   echo ""
