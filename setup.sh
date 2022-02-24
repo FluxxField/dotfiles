@@ -6,16 +6,6 @@ if [[ $? != 0 ]]; then
   echo "# installing brew"
   echo "##############################"
   curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh;
-
-  echo "##############################"
-  echo "# installing packages"
-  echo "##############################"
-  brew install wget
-  brew install gnupg
-  brew install grep
-  brew install node
-  brew install yarn
-  brew install tmux
 else
   echo "##############################"
   echo "# updating brew"
@@ -27,6 +17,16 @@ echo "##############################"
 echo "# upgrading brew"
 echo "##############################"
 brew upgrade
+
+echo "##############################"
+echo "# installing packages"
+echo "##############################"
+brew install wget
+brew install gnupg
+brew install grep
+brew install node
+brew install yarn
+brew install tmux
 
 which -s asdf
 if [[ $? != 0 ]]; then
