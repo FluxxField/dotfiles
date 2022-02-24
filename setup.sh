@@ -4,7 +4,7 @@ exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
-if [ ! exists brew ]
+if ! [ exists brew ]
 then
   echo "##############################"
   echo "# installing brew"
@@ -26,7 +26,7 @@ brew install node
 brew install yarn
 brew install tmux
 
-if [ ! exists asdf ]
+if ! [ exists asdf ]
 then
   echo ""
   echo "##############################"
@@ -45,7 +45,7 @@ then
   asdf global golang latest
 fi
 
-if [ ! greadlink -f $(exists vim) ]
+if ! [ greadlink -f $(exists vim) ]
 then
   echo ""
   echo "##############################"
@@ -54,7 +54,7 @@ then
   brew install vim
 fi
 
-if [ ! exists nvim ]
+if ! [ exists nvim ]
 then
   echo ""
   echo "##############################"
@@ -64,7 +64,7 @@ then
   cp ./.config/nvim/init.vim ~/.config/nvim/
 fi
 
-if [ ! -d ~/.oh-my-zsh ]
+if ! [ -d ~/.oh-my-zsh ]
 then
   echo ""
   echo "##############################"
@@ -73,7 +73,7 @@ then
   curl -fsSL https://raw.github.com/ohmyzsh/master/tools/install.sh
 fi
 
-if [ ! -d "$ZSH_CUSTOM/themes/spaceship-prompt" ]
+if ! [ -d "$ZSH_CUSTOM/themes/spaceship-prompt" ]
 then
   echo ""
   echo "##############################"
@@ -83,7 +83,7 @@ then
   ln -s "$ZSH_CUSTOM/themes/spaceship-prompt/spaceship.zsh-theme" "$ZSH_CUSTOM/themes/spaceship.zsh-theme"
 fi
 
-if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]
+if ! [ -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]
 then
   echo ""
   echo "##############################"
@@ -92,7 +92,7 @@ then
   git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
 fi
 
-if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]
+if ! [ -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]
 then
   echo ""
   echo "##############################"
