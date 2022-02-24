@@ -13,3 +13,5 @@ cd into the dir and run the setup script to install brew and other packages
 ```
 cd dotfiles && source setup.sh
 ```
+
+Once the setup script is done, run the extract script to grab the dotfiles and add them to your $HOME dir
