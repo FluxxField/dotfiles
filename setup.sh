@@ -14,6 +14,7 @@ else
   brew update
 fi
 
+echo ""
 echo "##############################"
 echo "# installing packages"
 echo "##############################\n"
@@ -27,6 +28,7 @@ brew install tmux
 
 if ! [ exists asdf ]
 then
+  echo ""
   echo "##############################"
   echo "# installing asdf"
   echo "##############################\n"
@@ -45,6 +47,7 @@ fi
 
 if ! [ greadlink -f $(exists vim) ]
 then
+  echo ""
   echo "##############################"
   echo "# installing vim"
   echo "##############################\n"
@@ -53,6 +56,7 @@ fi
 
 if ! [ exists nvim ]
 then
+  echo ""
   echo "##############################"
   echo "# installing neovim"
   echo "##############################\n"
@@ -62,6 +66,7 @@ fi
 
 if ! [ -d ~/.oh-my-zsh ]
 then
+  echo ""
   echo "##############################"
   echo "# installing oh-my-zsh"
   echo "##############################\n"
@@ -70,6 +75,7 @@ fi
 
 if ! [ -d "$ZSH_CUSTOM/themes/spaceship-prompt" ]
 then
+  echo ""
   echo "##############################"
   echo "# installing spaceship theme"
   echo "##############################\n"
@@ -79,6 +85,7 @@ fi
 
 if ! [ -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]
 then
+  echo ""
   echo "##############################"
   echo "# installing zsh autosuggestions"
   echo "##############################\n"
@@ -87,12 +94,14 @@ fi
 
 if ! [ -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]
 then
+  echo ""
   echo "##############################"
   echo "# installing zsh syntax highlighting"
   echo "##############################\n"
   git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
 fi
 
+echo ""
 echo "##############################"
 echo "# upgrading brew"
 echo "##############################\n"
