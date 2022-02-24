@@ -87,6 +87,15 @@ if ! exists nvim; then
   cp ./.config/nvim/init.vim ~/.config/nvim/
 fi
 
+if ! [[ -f ~/.vim/autoload/plug.vim ]]
+then
+  echo ""
+  echo "##############################"
+  echo "# installing vim-plug"
+  echo "##############################\n"
+  curl -fLo ~/.vim/autoload/plug.vim --create-dirs \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+fi
+
 if ! [[ -d ~/.oh-my-zsh ]]
 then
   echo ""
