@@ -5,7 +5,7 @@ cd "$(dirname "${BASH_SOURCE}")";
 git pull origin main;
 
 function extract() {
-  rsync --exclude ".git/" \ --exclude "main.sh" \ --exclude "README.md" \ --exclude "LICENSE.txt" -avh --no-perms . ~;
+  rsync --exclude ".git/" \ --exclude "main.sh" \ --exclude "README.md" \ --exclude "LICENSE.txt" \ --exclude ".config/" -avh --no-perms . ~;
 
   source ~/.zshrc;
 }

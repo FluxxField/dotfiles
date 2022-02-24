@@ -16,6 +16,10 @@ echo "installing packages"
 echo ""
 brew install wget
 brew install gnupg
-brew install vim
 brew install grep
+
+echo "installing vim and nvim"
+brew install vim
 brew install neovim
+
+cp -R /.config/nvim/init.vim ~/.config/nvim/
