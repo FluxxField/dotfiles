@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
 exists() {
-  command -v "$1"
+  command -v "$1" &>/dev/null
 }
 
 if ! exists brew; then
@@ -32,16 +32,43 @@ if ! exists asdf; then
   echo "##############################\n"
   brew install asdf
   echo -e "\n. $(brew --prefix asdf)/libexec/asdf.sh" >> ${ZDOTDIR:-~}/.zshrcw
-  asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
-  asdf plugin-add yarn
-  asdf plugin-add golang https://github.com/kennyp/asdf-golang.git
-  asdf install nodejs latest
-  asdf install yarn latest
-  asdf install golang latest
-  asdf global nodejs latest
-  asdf global yarn latest
-  asdf global golang latest
+else
+  echo ""
+  echo "##############################"
+  echo "# updating asdf"
+  echo "##############################\n"
+  asdf update
 fi
+
+if ! exists node; then
+  echo ""
+  echo "##############################"
+  echo "# installing nodejs"
+  echo "##############################\n"
+  asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
+  asdf install nodejs latest
+  asdf global nodejs latest
+fi
+
+if ! exists yarn; then
+  echo ""
+  echo "##############################"
+  echo "# installing yarn"
+  echo "##############################\n"
+  asdf plugin-add yarn
+  asdf install yarn latest
+  asdf global yarn latest
+fi
+
+if ! exists go; then
+  echo ""
+  echo "##############################"
+  echo "# updating go"
+  echo "##############################\n"
+  asdf plugin-add golang https://github.com/kennyp/asdf-golang.git
+  asdf install golang latest
+  asdf global golang latest
+fi 
 
 if ! alias vim &>/dev/null; then
   echo ""
