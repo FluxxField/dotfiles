@@ -23,6 +23,9 @@ brew install gnupg
 brew install grep
 brew install node
 brew install yarn
+# nvim telescope needs ripgrep and fd
+brew install ripgrep
+brew install fd
 brew tap homebrew/cask-fonts
 brew install --cask font-hack-nerd-font
 brew install --cask font-victor-mono
