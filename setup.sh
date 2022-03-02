@@ -18,6 +18,12 @@ install_bins $VAR_BREW_BINS
 
 install_casks $VAR_BREW_CASKS
 
+install_ohmyzsh
+
+nvim_handlers
+
+asdf_setup
+
 . $HOME/.config/zsh/post_install.sh
 
 source $HOME.zshrc
