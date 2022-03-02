@@ -9,9 +9,6 @@ function install_xcode () {
 
 function install_brew () {
   [ ! -f "which brew" ] && curl -fsL https://raw.githubusercontent.com/Homebrew/installmaster/install.sh) || brew update
-
-  # needed for nerd fonts
-  brew tap homebrew/cask-fonts
 }
 
 function install_ohmyzsh () {
