@@ -1,184 +1,23 @@
-#!/usr/bin/zsh
+# Loads the zsh vars. Checks the home dir then falls back to Github
+[ -f $HOME/.config/zsh/vars.sh ] && source $HOME/.config/zsh/vars.sh \ || source /dev/stdin <<< "$(curl https://raw.githubusercontent.com/FluxxField/dotfiles/main/.config/zsh/vars.sh)"
 
-exists() {
-  command -v "$1" &>/dev/null
-}
+# Loads the utility functions. Checks the home dir then falls back to Github
+[ -f $HOME/.config/zsh/utils.sh ] && source $HOME/.config/zsh/utils.sh \ || source /dev/stdin "$(curl https://raw.githubusercontent.com/FluxxField/dotfiles/main/.config/zsh/utils.sh)"
 
-if ! exists brew; then
-  echo "##############################"
-  echo "# installing brew"
-  echo "##############################\n"
-  curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
-else
-  brew update
-fi
+ask_password
 
-echo ""
-echo "##############################"
-echo "# installing packages"
-echo "##############################\n"
-brew install wget
-brew install coreutils
-brew install gnupg
-brew install grep
-brew install node
-brew install yarn
-# nvim telescope needs ripgrep and fd
-brew install ripgrep
-brew install fd
-brew tap homebrew/cask-fonts
-brew install --cask font-hack-nerd-font
-brew install --cask font-victor-mono
+install_xcode
 
-if ! exists python; then
-  echo ""
-  echo "##############################"
-  echo "# installing tmux"
-  echo "##############################\n"
-  brew install python
-fi
+install_brew
 
-python -m pip install pynvim --user
-python3 -m pip install pynvim --user
-python3 -m pip install --upgrade pip --user
+update_shell
 
-if ! exists tmux; then
-  echo ""
-  echo "##############################"
-  echo "# installing tmux"
-  echo "##############################\n"
-  brew install tmux
-fi
+setup_dotfiles
 
-if ! [[ ~/.tmux/plugins/tmp ]]
-then
-  echo ""
-  echo "##############################"
-  echo "# installing tmux plugin manager"
-  echo "##############################\n"
-  git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-fi
+install_bins $VAR_BREW_BINS
 
-if ! exists asdf; then
-  echo ""
-  echo "##############################"
-  echo "# installing asdf"
-  echo "##############################\n"
-  brew install asdf
-  echo -e "\n. $(brew --prefix asdf)/libexec/asdf.sh" >> ${ZDOTDIR:-~}/.zshrcw
-else
-  echo ""
-  echo "##############################"
-  echo "# updating asdf"
-  echo "##############################\n"
-  asdf update
-fi
+install_casks $VAR_BREW_CASKS
 
-if ! exists node; then
-  echo ""
-  echo "##############################"
-  echo "# installing nodejs"
-  echo "##############################\n"
-  asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
-  asdf install nodejs latest
-  asdf global nodejs latest
-fi
+. $HOME/.config/zsh/post_install.sh
 
-if ! exists yarn; then
-  echo ""
-  echo "##############################"
-  echo "# installing yarn"
-  echo "##############################\n"
-  asdf plugin-add yarn
-  asdf install yarn latest
-  asdf global yarn latest
-fi
-
-if ! exists go; then
-  echo ""
-  echo "##############################"
-  echo "# updating go"
-  echo "##############################\n"
-  asdf plugin-add golang https://github.com/kennyp/asdf-golang.git
-  asdf install golang latest
-  asdf global golang latest
-fi 
-
-if ! alias vim &>/dev/null; then
-  echo ""
-  echo "##############################"
-  echo "# installing vim"
-  echo "##############################\n"
-  brew install vim
-fi
-
-if ! exists nvim; then
-  echo ""
-  echo "##############################"
-  echo "# installing neovim"
-  echo "##############################\n"
-  brew install neovim
-  cp ./.config/nvim/init.vim ~/.config/nvim/
-fi
-
-if ! [[ -f ~/.vim/autoload/plug.vim ]]
-then
-  echo ""
-  echo "##############################"
-  echo "# installing vim-plug"
-  echo "##############################\n"
-  curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
-    https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-fi
-
-if ! [[ -d ~/.oh-my-zsh ]]
-then
-  echo ""
-  echo "##############################"
-  echo "# installing oh-my-zsh"
-  echo "##############################\n"
-  curl -fsSL https://raw.github.com/ohmyzsh/master/tools/install.sh
-fi
-
-if ! [[ -d "$ZSH_CUSTOM/themes/spaceship-prompt" ]]
-then
-  echo ""
-  echo "##############################"
-  echo "# installing spaceship theme"
-  echo "##############################\n"
-  git clone https://github.com/spaceship-prompt/spaceship-prompt.git "$ZSH_CUSTOM/themes/spaceship-prompt" --depth=1
-  ln -s "$ZSH_CUSTOM/themes/spaceship-prompt/spaceship.zsh-theme" "$ZSH_CUSTOM/themes/spaceship.zsh-theme"
-fi
-
-if ! [[ -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]]
-then
-  echo ""
-  echo "##############################"
-  echo "# installing zsh autosuggestions"
-  echo "##############################\n"
-  git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-fi
-
-if ! [[ -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]]
-then
-  echo ""
-  echo "##############################"
-  echo "# installing zsh syntax highlighting"
-  echo "##############################\n"
-  git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-fi
-
-echo ""
-echo "##############################"
-echo "# upgrading brew"
-echo "##############################\n"
-brew upgrade
-
-if ! [[ -d "./one-dark-pro-item" ]]
-then
-  echo ""
-  echo "##############################"
-  echo "# installing one-dark-pro-iterm"
-  echo "##############################\n"
-  git clone https://github.com/chinhsuanwu/one-dark-pro-iterm.git
-fi
+source $HOME.zshrc

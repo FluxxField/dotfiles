@@ -9,6 +9,32 @@ function install_xcode () {
 
 function install_brew () {
   [ ! -f "`which brew`" ] && /bin/bash -c "$(curl -fsL https://raw.githubusercontent.com/Homebrew/installmaster/install.sh)" || brew update
+
+  # needed for nerd fonts
+  brew tap homebrew/cask-fonts
+}
+
+function install_ohmyzsh () {
+  if [[ ! -d ~/.oh-my-zsh ]]; then
+    curl -fsSL https://raw.github.com/ohmyzsh/master/tools/install.sh
+  fi
+
+  if [[ ! -d "$ZSH_CUSTOM/themes/spaceship-prompt" ]]; then
+    git clone https://github.com/spaceship-prompt/spaceship-prompt.git "ZSH_CUSTOM/themes/spaceship-prompt" --depth=1
+    ln -s "$ZSH_CUSTOM/themes/spaceship-prompt/spaceship.zsh-theme" "$ZSH_CUSTOM/themes/spaceship.zsh-theme"
+  fi
+
+  if [[ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]]; then
+    clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+  fi
+
+  if [[ ! -d ~/.oh-my-zsh ]]; then
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+  fi
+
+  if [[ ! -d "~/.config/one-dark-pro-item" ]]; then
+    git clone https://github.com/chinhsuanwu/one-dark-pro-iterm.git ~/.config/
+  fi
 }
 
 function update_shell () {
@@ -64,6 +90,28 @@ function install_casks () {
       brew install --cask "$c"
     fi
   done
+}
+
+function nvim_handlers () {
+  npm install -g neovim
+  yarn global add neovim
+  python -m pip install pynvim --user
+  python3 -m pip install pynvim --user
+  python3 -m pip install --upgraed pip --user
+}
+
+function asdf_setup () {
+  asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
+  asdf install nodejs latest
+  asdf global nodejs latest
+
+  asdf plugin-add yarn
+  asdf install yarn latest
+  asdf global yarn latest
+
+  asdf plugin-add golang https://github.com/kennyp/asdf-golang.git
+  asdf install golang latest
+  asdf global golang latest
 }
 
 function ask_password () {

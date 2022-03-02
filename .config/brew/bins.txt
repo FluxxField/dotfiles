@@ -3,6 +3,7 @@ wget
 gnupg
 grep
 zsh
+cmake
 go
 yarn
 node
