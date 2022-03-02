@@ -1,0 +1,14 @@
+coreutils
+wget
+gnupg
+grep
+zsh
+go
+yarn
+node
+asdf
+tmux
+neovim
+ripgrep
+fd
+python

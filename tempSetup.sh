@@ -16,6 +16,6 @@ install_bins $VAR_BREW_BINS
 
 install_casks $VAR_BREW_CASKS
 
-. $HOME/.config/zsh/post_installation.sh
+. $HOME/.config/zsh/post_install.sh
 
 source $HOME.zshrc

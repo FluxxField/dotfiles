@@ -1,0 +1,5 @@
+firefox
+slack
+postman
+discord
+visual-studio-code
