@@ -65,7 +65,7 @@ set noshowmode        " For echodoc to hide -- INSERT -- in command line
 set scrolloff=8       " Minimal number of screen lines to keep above and below the cursor
 set cursorline        " Highlight the current line where the cursor is
 set guicursor         " Set the cursor to the block (fro insert mode)
-set cmdheight-1       " Make sure the cmmd height is always one
+set cmdheight=1       " Make sure the cmmd height is always one
 set laststatus=1      " Keep teh statusbar always on
 set showtabline=1     " Show the tabline if at least two tab pages are open
 set display+=lastline " Display as much as possible of the last line
