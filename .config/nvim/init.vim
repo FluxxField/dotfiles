@@ -1,5 +1,3 @@
-lua require('FluxxField')
-
 syntax on
 filetype plugin indent on
 
@@ -26,7 +24,7 @@ Plug 'wincent/vcs-jump'
 " NerdTree
 Plug 'scrooloose/nerdtree'
 Plug 'ryanoasis/vim-devicons'
-plug 'tiagofumo/vim-nerdtree-syntax-highlight'
+Plug 'tiagofumo/vim-nerdtree-syntax-highlight'
 
 " YouCompleteMe
 Plug 'valloric/youcompleteme', { 'do': './install.py' }
@@ -105,7 +103,7 @@ set expandtab
 set smarttab
 
 " search
-set incserach
+set incsearch
 set nohlsearch
 set ignorecase
 set smartcase
@@ -125,10 +123,10 @@ let g:user_emmet_leader_key='<Tab>'
 
 " PLUGIN: YouCompleteMe
 let g:ycm_global_ycm_extra_conf = '~/.vim/.ycm_extra_conf.py'
-let g:ycm_key_list_select_completion = [ '<C-n>' '<Down>' ]
+let g:ycm_key_list_select_completion = [ '<C-n>', '<Down>' ]
 let g:ycm_key_list_previous_completion = [ '<C-p>', '<Up>' ]
 let g:SuperTabDefaultCompletionType = '<C-n>'
-set completopt-=preview
+set completeopt-=preview
 map <leader>g : YcmCompleter GoToDefintionElseDeclaration<CR>
 
 " PLUGIN: NERDTree
@@ -172,3 +170,5 @@ set wildignore+=**/.git/*
 set wildignore+=**/build/*
 set wildignore+=**/coverage/*
 set wildignore+=**/node_modules/*
+
+lua require('FluxxField')
