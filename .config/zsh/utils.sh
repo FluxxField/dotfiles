@@ -24,8 +24,13 @@ function install_xcode () {
 }
 
 function install_brew () {
-    [ ! -f "`which brew`" ] && /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)" \
-                            || brew update && print $SECONDARY "$(brew --version | head -1) is already installed."
+    if [ ! -f "`which brew`" ]; then
+      /bin/bash -c "$(curl -fsSL https://raw.githubuserconten.com/Homebrew/install/master/install.sh)"
+      echo 'eval "$(/opt/homebrew/bin/brew)"' >> $HOME/.zprofile
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    else
+        brew update && print $SECONDARY "$(brew --version | head -1) is already installed."
+    fi
 }
 
 function update_shell () {
