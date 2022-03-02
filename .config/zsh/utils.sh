@@ -43,9 +43,10 @@ function update_shell () {
         # Chanage the default shell to zsh installed by Homebrew (macos may ship with
         # older version, therefore update the zsh)
         BREW_PREFIX=$(brew --prefix)
+        
         if ! fgrep -q "${BREW_PREFIX}/bin/zsh" /etc/shells; then
-        echo "${BREW_PREFIX}/bin/zsh" | sudo tee -a /etc/shells;
-        chsh -s "${BREW_PREFIX}/bin/zsh";
+            echo "${BREW_PREFIX}/bin/zsh" | sudo tee -a /etc/shells;
+            chsh -s "${BREW_PREFIX}/bin/zsh";
         fi
     fi
 }
