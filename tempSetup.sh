@@ -4,6 +4,8 @@
 # Loads the utility functions. Checks the home dir then falls back to Github
 [ -f $HOME/.config/zsh/utils.sh ] && source $HOME/.config/zsh/utils.sh \ || source /dev/stdin "$(curl https://raw.githubusercontent.com/FluxxField/dotfiles/main/.config/zsh/utils.sh)"
 
+ask_password
+
 install_xcode
 
 install_brew
