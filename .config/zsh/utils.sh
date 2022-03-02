@@ -142,7 +142,7 @@ function install_ohmyzsh () {
   fi
 
   if [[ ! -d "~/.config/one-dark-pro-item" ]]; then
-    git clone https://github.com/chinhsuanwu/one-dark-pro-iterm.git ~/.config/
+    git clone https://github.com/chinhsuanwu/one-dark-pro-iterm.git ~/Downloads/one-dark-pro-iterm
   fi
 }
 
