@@ -8,7 +8,7 @@ function install_xcode () {
 }
 
 function install_brew () {
-  [ ! -f "which brew" ] && curl -fsL https://raw.githubusercontent.com/Homebrew/installmaster/install.sh) || brew update
+  [ ! -f "which brew" ] &&  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" | brew update
 }
 
 function install_ohmyzsh () {
