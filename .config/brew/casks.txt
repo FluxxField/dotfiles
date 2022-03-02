@@ -1,5 +1,6 @@
-firefox
+frefox
 slack
 postman
 discord
 visual-studio-code
+google-chrome
