@@ -27,7 +27,7 @@ install_casks $VAR_BREW_CASKS
 
 install_ohmyzsh
 
-nvim_handlers
+install_nvim_req
 
 asdf_setup
 
