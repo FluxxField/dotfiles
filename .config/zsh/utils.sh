@@ -125,7 +125,7 @@ function install_casks () {
 
 function install_ohmyzsh () {
   if [[ ! -d ~/.oh-my-zsh ]]; then
-    curl -fsSL https://raw.github.com/ohmyzsh/master/tools/install.sh
+    sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
   fi
 
   if [[ ! -d "$ZSH_CUSTOM/themes/spaceship-prompt" ]]; then
@@ -134,10 +134,10 @@ function install_ohmyzsh () {
   fi
 
   if [[ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]]; then
-    clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
   fi
 
-  if [[ ! -d ~/.oh-my-zsh ]]; then
+  if [[ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]]; then
     git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
   fi
 
