@@ -149,9 +149,8 @@ function install_ohmyzsh () {
 function nvim_handlers () {
   npm install -g neovim
   yarn global add neovim
-  python -m pip install pynvim --user
   python3 -m pip install pynvim --user
-  python3 -m pip install --upgraed pip --user
+  python3 -m pip install --upgrade pip --user
 }
 
 function asdf_setup () {
