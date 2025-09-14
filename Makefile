@@ -4,7 +4,7 @@ SHELL := /usr/bin/env bash
 HOST := $(shell hostname)
 
 help:
-	@echo "Targets: bootstrap | link | unlink | restow | doctor"
+	@echo "Targets: bootstrap | link | unlink | restow | adopt | adopt-dry | mise-globals | nvim-subtree-pull | nvim-subtree-push | nvim-stable | nvim-nightly | nvim-switch-stable | nvim-switch-nightly | doctor"
 
 bootstrap:
 	bash bootstrap.sh
@@ -17,6 +17,21 @@ unlink:
 
 restow:
 	unlink link
+
+adopt:
+		bash scripts/adopt-existing.sh
+
+adopt-dry:
+	bash scripts/adopt-existing.sh --dry-run
+
+mise-globals:
+	bash scripts/mide-setup-globas.sh
+
+nvim-subtree-pull:
+	bash scripts/nvim-subtree.sh pull
+
+nvim-subtree-push:
+	bash scripts/nvim-subtree.sh push
 
 nvim-stable:
 	bash scripts/nvim-manager.sh install stable && bash scripts/nvim-manager.sh switch stable
