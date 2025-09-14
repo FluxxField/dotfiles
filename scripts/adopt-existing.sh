@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Adopt existing dotfiles on a legacy machine into this repo safely.
-# - Backs up any real files that would be replaced
-# - Uses GNU Stow --adopt to move them into the package directories
+# - Auto-installs GNU Stow if missing (apt on Linux, Homebrew on macOS)
+# - Backs up conflicts
+# - Uses Stow --adopt to move them into package folders
 # - Then (re)stows to create symlinks
 #
 # Usage:
@@ -30,14 +31,40 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-require_stow() {
-  if ! command -v stow >/dev/null; then
-    echo "GNU Stow is required." >&2
-    exit 1
+ensure_stow() {
+  if command -v stow >/dev/null 2>&1; then
+    :
+  else
+    # Try to install stow
+    case "$(uname -s)" in
+    Linux)
+      if command -v apt >/dev/null 2>&1; then
+        echo "Installing GNU Stow via apt..."
+        sudo apt update && sudo apt install -y stow
+      else
+        echo "apt not available; please install GNU Stow manually." >&2
+        exit 1
+      fi
+      ;;
+    Darwin)
+      if command -v brew >/dev/null 2>&1; then
+        echo "Installing GNU Stow via Homebrew..."
+        brew install stow
+      else
+        echo "Homebrew not found; please install Homebrew, then 'brew install stow'." >&2
+        exit 1
+      fi
+      ;;
+    *)
+      echo "Unsupported OS for auto-install; please install GNU Stow manually." >&2
+      exit 1
+      ;;
+    esac
   fi
 
+  # Require --adopt support
   if ! stow --help 2>/dev/null | grep -q -- "--adopt"; then
-    echo "Your stow does not support --adopt. Please update (>=2.3+ recommended)." >&2
+    echo "Your stow does not support --adopt. Please upgrade to stow >= 2.3." >&2
     exit 1
   fi
 }
@@ -48,16 +75,12 @@ list_packages() {
 
 backup_conflicts_for_pkg() {
   local pkg="$1" backup_root="$2"
-  # For every file tracked in this package, if a real file exists at $HOME,
-  # copy it to backup preserving structure.
   (
     cd "stow/$pkg"
-    # include files and symlinks; directories are created as needed
     while IFS= read -r rel; do
       [[ -z "$rel" ]] && continue
       local target="$HOME/$rel"
       local dst="$backup_root/$rel"
-
       if [[ -e "$target" && ! -L "$target" ]]; then
         mkdir -p "$(dirname "$dst")"
         cp -a "$target" "$dst"
@@ -68,7 +91,6 @@ backup_conflicts_for_pkg() {
 
 adopt_pkg() {
   local pkg="$1"
-
   if ((DRYRUN)); then
     echo "---- DRY RUN: $pkg ----"
     stow -n -v 2 -d stow -t "$HOME" "$pkg" || true
@@ -93,15 +115,13 @@ adopt_pkg() {
 }
 
 main() {
-  require_stow
+  ensure_stow
   if [[ ${#PKGS[@]} -eq 0 ]]; then
     mapfile -t PKGS < <(list_packages)
   fi
-
   for p in "${PKGS[@]}"; do
     adopt_pkg "$p"
   done
-
   if ((!DRYRUN)); then
     echo
     echo "Next steps:"
@@ -109,5 +129,4 @@ main() {
     echo "  ./stow-all.sh   # or stow specific packages"
   fi
 }
-
 main "$@"
