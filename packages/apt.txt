@@ -19,3 +19,7 @@ zellij
 starship
 fonts-powerline
 zoxide
+lazygit
+pandoc
+poppler-utils
+ffmpeg
