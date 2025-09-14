@@ -2,6 +2,10 @@
 # NOTE: Language runtimes are managed by mise, do not apt install node
 
 # base
+build-essential
+htop
+net-tools
+fastfetch
 zsh
 stow
 ripgrep
@@ -23,3 +27,5 @@ lazygit
 pandoc
 poppler-utils
 ffmpeg
+git
+git-subtree
