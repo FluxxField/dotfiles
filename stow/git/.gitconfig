@@ -1,0 +1,19 @@
+[user]
+  name = YOUR NAME
+  email = you@example.com
+
+[core]
+  editor = nvim
+  excludesfile = ~/.gitignore_global
+
+[pull]
+  rebase = false
+
+[init]
+  defaultBranch = main
+
+[merge]
+  tool = nvimdiff
+
+[diff]
+  tool = nvimdiff
