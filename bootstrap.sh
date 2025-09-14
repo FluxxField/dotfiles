@@ -22,8 +22,11 @@ if [[ "$OS" == "linux" ]]; then
   bash scripts/install-apt.sh
 fi
 
-bash scripts/install-cargo.sh
 bash scripts/install-mise.sh
+bash scripts/mise-setup-globals.sh
+
+# 3) Neovim config via git subtree (pull latest if configured)
+bash scripts/nvim-subtree.sh pull --auto || true
 
 # 2) Default shell to zsh (if installed)
 bash scripts/set-default-shell-zsh.sh || true
