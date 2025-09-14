@@ -1,0 +1,21 @@
+# NOTE: Do not apt install neovim, install using Github release page
+# NOTE: Language runtimes are managed by mise, do not apt install node
+
+# base
+zsh
+stow
+ripgrep
+fzf
+fd-find
+bat
+curl
+wget
+unzip
+zip
+make
+python3-pip
+neovim
+zellij
+starship
+fonts-powerline
+zoxide
