@@ -1,15 +1,19 @@
 export ZDOTDIR="$HOME"
 export EDITOR="nvim"
 export PATH="$HOME/.local/bin:$PATH"
-
 export ZSH="$HOME/.oh-my-zsh"
 
 ZSH_THEME=""
 
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 zstyle ':omz:update' mode auto
+
+ENABLE_CORRECTION="true"
 
 plugins=(
   git
+  zsh-autosuggestions
+  zsh-syntax-highlighting
 )
 
 source "$ZSH"/oh-my-zsh.sh
@@ -26,9 +30,24 @@ fi
 
 # Aliases
 alias n="nvim"
-alias vim="vim"
-alias ll='ls -alF'
-alias lg='git lg'
+alias vim="nvim"
+alias v="nvim"
+alias fd="fdfind"
+alias ls="exa"
+alias la="exa -a"
+alias ll="exa -l"
+
+bindkey '^I' complete-word         # tab | complete
+bindkey '^[[Z' autosuggest-execute # shift + tab | autosuggest
+ZSH_AUTOSUGGEST_CLEAR_WIDGETS+=(buffer-empty bracketed-paste accept-line push-line-or-edit)
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+ZSH_AUTOSUGGEST_USE_ASYNC=true
+
+export LC_ALL="en_US.UTF-8"
+export EDITOR="nvim"
+export PATH="$PATH:/opt/nvim/"
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 # WSL tweaks
 if grep -qi microsoft /proc/version 2>/dev/null; then
@@ -41,3 +60,4 @@ if [ -t 1 ] && [ -x "$HOME/.dotfiles/scripts/startup.sh" ]; then
 fi
 
 eval "$(starship init zsh)"
+eval "$(zoxide init zsh)"
