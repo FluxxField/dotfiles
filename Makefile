@@ -4,7 +4,7 @@ SHELL := /usr/bin/env bash
 HOST := $(shell hostname)
 
 help:
-	@echo "Targets: bootstrap | link | unlink | restow | adopt | adopt-dry | mise-globals | nvim-subtree-pull | nvim-subtree-push | nvim-stable | nvim-nightly | nvim-switch-stable | nvim-switch-nightly | doctor"
+	@echo "Targets: bootstrap | link | unlink | restow | adopt | adopt-dry | mise-globals | nvim-subtree-pull | nvim-subtree-push | nvim-stable | nvim-nightly | nvim-switch-stable | nvim-switch-nightly | fonts-linux | fonts-windows | doctor"
 
 bootstrap:
 	bash bootstrap.sh
@@ -44,6 +44,12 @@ nvim-switch-stable:
 
 nvim-switch-nightly:
 	bash scripts/nvim-manager.sh switch nightly
+
+fonts-linux:
+	bash scripts/install-fonts.sh
+
+fonts-windows:
+	pwsh -NoProfile -ExecutionPolicy Bypass -File "$$HOME/.dotfiles/scripts/win/install-fonts.ps1"
 
 doctor:
 	@command -v stow >/dev/null || echo "stow missing"

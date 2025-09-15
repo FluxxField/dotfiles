@@ -1,0 +1,6 @@
+{
+	"nerd_fonts": ["JetBrainsMono", "FiraCode", "VictorMono"],
+	"include_symbols": false,
+	"extra_urls": [],
+	"local_dir": "fonts/local"
+}
