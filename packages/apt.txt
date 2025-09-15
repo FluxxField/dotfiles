@@ -30,3 +30,9 @@ ffmpeg
 git
 git-subtree
 fontconfig
+exa
+xdg-utils
+ghostscript
+tectonic
+texlive-latex-base
+gdu
