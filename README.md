@@ -33,6 +33,19 @@ bash bootstrap.sh
 # Open a NEW terminal so mise activation & PATH apply
 ```
 
+### Fonts during bootstrap
+
+By default, `bootstrap.sh` installs fonts from `fonts/manifest.json`:
+
+- **Linux/WSL:** installs to `~/.local/share/fonts` and refreshes cache
+- **WSL2 (Windows side):** also calls the Windows installer via PowerShell to install per-user fonts
+
+To skip fonts on a machine:
+```bash
+DOTFILES_INSTALL_FONTS=0 bash bootstrap.sh
+# or set in ~/.config/dotfiles/env.sh:
+# export DOTFILES_INSTALL_FONTS=0
+
 **Smoke test:**
 
 ```bash
