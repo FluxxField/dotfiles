@@ -22,6 +22,26 @@ if [[ "$OS" == "linux" ]]; then
   bash scripts/install-apt.sh
 fi
 
+# 1.1) Fonts (shared manifest) — Linux fonts + (if WSL) Windows fonts via PowerShell
+# Toggle with DOTFILES_INSTALL_FONTS=0 to skip
+INSTALL_FONTS="${DOTFILES_INSTALL_FONTS:-1}"
+if [[ "$INSTALL_FONTS" == "1" ]]; then
+  if [[ "$OS" == "linux" ]]; then
+    echo "[bootstrap] Installing Linux fonts from fonts/manifest.json ..."
+    bash scripts/install-fonts-linux.sh || true
+    if [[ "$WSL" == "1" ]]; then
+      echo "[bootstrap] Installing Windows fonts from fonts/manifest.json (WSL) ..."
+      if command -v pwsh.exe >/dev/null 2>&1; then
+        pwsh.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w "$PWD/scripts/win/install-fonts.ps1")" || true
+      elif command -v powershell.exe >/dev/null 2>&1; then
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w "$PWD/scripts/win/install-fonts.ps1")" || true
+      else
+        echo "[bootstrap] Skipping Windows fonts: no pwsh.exe/powershell.exe found."
+      fi
+    fi
+  fi
+fi
+
 bash scripts/install-mise.sh
 bash scripts/mise-setup-globals.sh
 

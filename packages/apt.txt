@@ -29,3 +29,4 @@ poppler-utils
 ffmpeg
 git
 git-subtree
+fontconfig
