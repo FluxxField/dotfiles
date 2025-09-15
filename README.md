@@ -5,9 +5,10 @@ Manage a full dev environment across Linux, macOS, and WSL2 using:
 * **GNU Stow** for clean, reversible symlinks
 * **mise** for versioned runtimes and global packages (Node, Go, Rust + `npm:` and `cargo:` backends)
 * **Neovim** installed from GitHub releases (stable/nightly) with easy switching
-* A **smart install policy** on Linux: **apt → mise → fallback**
+* Linux install policy: **apt → mise → fallback**
 * Optional **Neovim config via git subtree** (keep your nvim repo separate but vendor it here)
 * **Startup checks/upgrades** (apt/brew/mise) + `fastfetch`, with safe caching
+* Shared **fonts manifest** for Windows & Linux installs
 * WSL niceties, host overlays, and idempotent bootstrap
 
 ---
@@ -24,7 +25,7 @@ cd .dotfiles
 # (Optional, one-time per repo) vendor your Neovim config via subtree
 # scripts/nvim-subtree.sh init git@github.com:YOURUSER/your-nvim-repo.git main
 
-# Install tooling, mise, global toolchains & packages, Neovim stable, etc.
+# Install tooling, mise, global toolchains & packages, fonts (by default), Neovim stable, etc.
 bash bootstrap.sh
 
 # Symlink all configs (zsh, git, nvim, starship, env, etc.)
@@ -33,20 +34,7 @@ bash bootstrap.sh
 # Open a NEW terminal so mise activation & PATH apply
 ```
 
-### Fonts during bootstrap
-
-By default, `bootstrap.sh` installs fonts from `fonts/manifest.json`:
-
-- **Linux/WSL:** installs to `~/.local/share/fonts` and refreshes cache
-- **WSL2 (Windows side):** also calls the Windows installer via PowerShell to install per-user fonts
-
-To skip fonts on a machine:
-```bash
-DOTFILES_INSTALL_FONTS=0 bash bootstrap.sh
-# or set in ~/.config/dotfiles/env.sh:
-# export DOTFILES_INSTALL_FONTS=0
-
-**Smoke test:**
+**Smoke test**
 
 ```bash
 nvim --version | head -n1
@@ -76,6 +64,29 @@ bash bootstrap.sh
 ./stow-all.sh
 ```
 
+### Merge your existing files with repo versions
+
+After `make adopt`, compare your repo files with the backups and merge differences:
+
+```bash
+# Use nvimdiff (default):
+make adopt-merge
+
+# Or explicitly choose a tool:
+MERGE_TOOL=meld make adopt-merge
+MERGE_TOOL=code make adopt-merge
+```
+
+What it does:
+
+* Uses the **latest** `.migration_backups/<timestamp>/` snapshot.
+* For each package, opens a 2-way diff: **repo** vs **backup**.
+* Save your reconciled file in the repo; it auto-stages. Commit when done:
+
+  ```bash
+  git commit -m "merge: reconcile adopted configs"
+  ```
+
 > `make adopt-dry` / `make adopt` will **auto-install GNU Stow** if missing (apt on Linux, Homebrew on macOS) and require a build with `--adopt`.
 
 ---
@@ -86,7 +97,7 @@ bash bootstrap.sh
 
   * `zsh` + **Starship** prompt
   * `ripgrep`, `fzf`, `fd`, `bat`, `lazygit` (via smart installer)
-  * `fastfetch` for a summary on shell start (opt-in auto-upgrades)
+  * `fastfetch` summary on shell start (opt-in auto-upgrades)
 
 * **Runtimes & globals (via mise)**
 
@@ -96,7 +107,7 @@ bash bootstrap.sh
 
 * **Neovim**
 
-  * Installed from GitHub release tarballs on Linux (stable & nightly channels)
+  * Installed from GitHub release tarballs on Linux (stable/nightly channels)
   * Easy switching via symlink (`~/.local/bin/nvim`)
   * On macOS, uses Homebrew stable or `--HEAD` for nightly
 
@@ -105,9 +116,57 @@ bash bootstrap.sh
   * Stowed packages under `stow/` (`zsh`, `nvim`, `git`, `starship`, `env`, etc.)
   * Host overlays: `stow/hosts/@common`, `stow/hosts/$(hostname)`, `stow/hosts/wsl`
 
-* **Policy on Linux installs**
+* **Fonts**
 
-  * **apt first** (when versions aren’t critical), then **mise backends** (when available), then **fallback** (official scripts/binaries).
+  * Shared manifest at `fonts/manifest.json` drives installs on both Windows & Linux
+
+---
+
+## Fonts (shared manifest for Windows & Linux)
+
+Configure once in `fonts/manifest.json`:
+
+```json
+{
+  "nerd_fonts": ["JetBrainsMono", "FiraCode"],
+  "include_symbols": false,
+  "extra_urls": [],
+  "local_dir": "fonts/local"
+}
+```
+
+**Windows (per-user fonts)**
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $HOME '.dotfiles/scripts/win/install-fonts.ps1')
+```
+
+Then set your Windows Terminal profile:
+
+```json
+"fontFace": "JetBrainsMono Nerd Font"
+```
+
+**Linux / WSL (for WSLg GUI apps & Linux terminals)**
+
+```bash
+scripts/install-fonts-linux.sh
+```
+
+Installs into `~/.local/share/fonts/NerdFonts/...` and refreshes with `fc-cache`.
+
+**Fonts during bootstrap**
+
+* By default, `bootstrap.sh` installs fonts from `fonts/manifest.json`.
+* **Linux/WSL:** installs to `~/.local/share/fonts` and refreshes cache.
+* **WSL2:** also calls the Windows installer via PowerShell.
+* Skip on a machine:
+
+  ```bash
+  DOTFILES_INSTALL_FONTS=0 bash bootstrap.sh
+  # or set in ~/.config/dotfiles/env.sh:
+  # export DOTFILES_INSTALL_FONTS=0
+  ```
 
 ---
 
@@ -119,9 +178,12 @@ bash bootstrap.sh
 ├── Makefile
 ├── bootstrap.sh
 ├── stow-all.sh
+├── fonts/
+│   ├── manifest.json          # shared list of fonts for both OSes
+│   └── local/                 # optional: extra .ttf/.otf you track
 ├── packages/
-│   ├── apt.txt               # safe defaults on Linux; avoid version-critical stuff here
-│   └── brew-Brewfile         # optional; brew bundle if you want
+│   ├── apt.txt                # safe defaults on Linux; avoid version-critical stuff here
+│   └── brew-Brewfile          # optional; brew bundle if you want
 ├── scripts/
 │   ├── detect-os.sh
 │   ├── install-apt.sh
@@ -133,7 +195,12 @@ bash bootstrap.sh
 │   ├── set-default-shell-zsh.sh
 │   ├── wsl-post.sh
 │   ├── smart-install.sh
-│   └── startup.sh
+│   ├── startup.sh
+│   ├── merge-from-backup.sh
+│   ├── install-fonts-linux.sh
+│   └── win/
+│       ├── install-fonts.ps1
+│       └── sync-windows-terminal.ps1
 └── stow/
     ├── zsh/                   # .zshrc (sources ~/.config/dotfiles/env.sh, runs startup hook)
     ├── git/                   # .gitconfig, .gitignore_global, aliases
@@ -151,9 +218,10 @@ bash bootstrap.sh
 ## Makefile targets
 
 ```text
-bootstrap              Install base tooling, mise + globals, Neovim, etc.
+bootstrap              Install base tooling, fonts (configurable), mise + globals, Neovim, etc.
 link / unlink / restow Stow, unstow, or restow all packages
 adopt-dry / adopt      Dry-run or adopt existing files into repo (backs up conflicts)
+adopt-merge            Interactively merge repo files with latest backup snapshot
 mise-globals           Re-apply global mise toolchains and packages
 nvim-stable            Install + switch to Neovim stable
 nvim-nightly           Install + switch to Neovim nightly
@@ -161,6 +229,8 @@ nvim-switch-stable     Switch symlink to stable (Linux)
 nvim-switch-nightly    Switch symlink to nightly (Linux)
 nvim-subtree-pull      Pull latest nvim config from upstream subtree remote
 nvim-subtree-push      Push changes in subtree back to upstream
+fonts-linux            Install fonts per manifest on Linux/WSL
+fonts-windows          Install fonts per manifest on Windows
 doctor                 Quick tool presence checks
 ```
 
@@ -212,16 +282,15 @@ Every interactive shell runs:
 
 Default behavior (safe/fast):
 
-* APT/Homebrew/mise are checked on a **24h** cache (tweak via `DOTFILES_STARTUP_INTERVAL_HOURS`)
+* APT/Homebrew/mise checked on a **24h** cache (tweak via `DOTFILES_STARTUP_INTERVAL_HOURS`)
 * No password prompts (skips upgrades if sudo isn’t cached)
-* Prints a brief status and then runs `fastfetch` (or `neofetch`, or a tip to install)
+* Prints a brief status and then runs **fastfetch** (or **neofetch**, or a tip to install)
 
-Enable auto-upgrades on login (noninteractive) by setting in `~/.config/dotfiles/env.sh`:
+Enable auto-upgrades on login (noninteractive) in `~/.config/dotfiles/env.sh`:
 
 ```bash
 export DOTFILES_STARTUP_AUTO_UPGRADE=1
-# optional: run the checks more often (hours)
-export DOTFILES_STARTUP_INTERVAL_HOURS=8
+export DOTFILES_STARTUP_INTERVAL_HOURS=8   # optional, default 24
 ```
 
 Manual full run (allows sudo prompts):
@@ -244,7 +313,7 @@ DOTFILES_STARTUP_AUTO_UPGRADE=1 ~/.dotfiles/scripts/startup.sh
   * Official scripts/binaries (e.g., Starship, lazygit releases) when needed
   * `go install ...@latest` if appropriate
 
-The helper script `scripts/smart-install.sh` applies this policy and exposes flags like `--min-version` for lazygit.
+The helper script `scripts/smart-install.sh` applies this policy and exposes flags like `--min-version`.
 
 ---
 
@@ -259,11 +328,40 @@ export DOTFILES_STARTUP_AUTO_UPGRADE=0
 # Cache window for startup checks (hours)
 export DOTFILES_STARTUP_INTERVAL_HOURS=24
 
+# Fonts during bootstrap (Linux + Windows via WSL): 1=install, 0=skip
+export DOTFILES_INSTALL_FONTS=1
+
 # Add anything else global you want here:
 # export EDITOR="nvim"
 ```
 
-`.zshrc` sources this file **before** running the startup hook.
+`.zshrc` sources this file **before** running the startup hook, and also runs:
+
+```zsh
+if [ -t 1 ] && [ -x "$HOME/.dotfiles/scripts/startup.sh" ]; then
+  "$HOME/.dotfiles/scripts/startup.sh" --auto || true
+fi
+```
+
+---
+
+## Windows Terminal settings
+
+Keep your Windows Terminal JSONs in the repo and sync them:
+
+```
+win/windows-terminal/
+  settings.json
+  schemes.json
+scripts/win/sync-windows-terminal.ps1
+```
+
+Run:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $HOME '.dotfiles/scripts/win/sync-windows-terminal.ps1')
+# add -Mode Symlink if you prefer live-linking (requires Dev Mode or admin)
+```
 
 ---
 
@@ -271,7 +369,7 @@ export DOTFILES_STARTUP_INTERVAL_HOURS=24
 
 ### `bootstrap.sh`
 
-Idempotent setup: installs Stow, runs `install-apt.sh` (Linux), installs mise, applies global toolchains/packages, pulls Neovim subtree (if configured), installs Neovim stable, runs smart installers (starship/lazygit), and prints next steps.
+Idempotent setup: installs Stow, runs `install-apt.sh` (Linux), **installs fonts** (Linux + Windows via WSL by default), installs mise & globals, pulls Neovim subtree (if configured), installs Neovim stable, runs smart installers (starship/lazygit), and prints next steps.
 
 ### `stow-all.sh`
 
@@ -279,7 +377,7 @@ Stows all packages under `stow/`, then overlays `hosts/@common`, `hosts/$(hostna
 
 ### `scripts/install-apt.sh`
 
-Installs safe defaults from `packages/apt.txt`. Adds QoL aliases (e.g., `batcat`→`bat`, `fdfind`→`fd`) if needed.
+Installs safe defaults from `packages/apt.txt` (includes `fontconfig` and `unzip` for fonts). Adds QoL aliases (e.g., `batcat`→`bat`, `fdfind`→`fd`) if needed.
 
 ### `scripts/install-brew.sh`
 
@@ -295,7 +393,7 @@ curl -fsSL https://mise.run/zsh | sh
 
 ### `scripts/mise-setup-globals.sh`
 
-Applies your global toolchains and packages:
+Applies global toolchains and packages:
 
 ```bash
 mise use -g -y rust@latest
@@ -338,7 +436,7 @@ Usage:
   nvim-subtree.sh pull [--auto]             # update subtree from upstream
   nvim-subtree.sh push                      # publish changes upstream
 
-Repo-local config saved as:
+Repo-local config:
   subtree.nvim.remote (default: nvim-origin)
   subtree.nvim.url
   subtree.nvim.branch (default: main)
@@ -360,6 +458,15 @@ Behavior:
   - Restows to create symlinks
 ```
 
+### `scripts/merge-from-backup.sh`
+
+Interactively merge repo files with the latest backup snapshot from adoption.
+
+```
+Usage:
+  MERGE_TOOL=nvimdiff|meld|code scripts/merge-from-backup.sh [pkg...]
+```
+
 ### `scripts/smart-install.sh`
 
 Implements **apt → mise → fallback** installation policy.
@@ -370,15 +477,11 @@ Usage examples:
   smart-install.sh lazygit --min-version 0.41.0
   smart-install.sh "npm:prettier"
   smart-install.sh "cargo:ripgrep-all"
-
-Notes:
-  - Linux: apt first (if available), then tries mise backend spec (if you passed one), else fallbacks to official releases or go install.
-  - macOS: uses Homebrew first, then fallbacks where appropriate.
 ```
 
 ### `scripts/startup.sh`
 
-Cached checks/upgrades + `fastfetch`. Designed **not to block your prompt** in `--auto` mode.
+Cached checks/upgrades + `fastfetch`. **Won’t block your prompt** in `--auto`.
 
 ```
 Usage:
@@ -387,13 +490,19 @@ Usage:
 Env:
   DOTFILES_STARTUP_INTERVAL_HOURS=24
   DOTFILES_STARTUP_AUTO_UPGRADE=0|1
-
-Behavior:
-  - Linux/APT: always `apt-get update`; in --auto it only runs `upgrade -y` if sudo is cached.
-  - macOS/Brew: `brew update`; in auto-upgrade mode, also `brew upgrade`.
-  - mise: counts outdated or runs `mise upgrade --yes`.
-  - Prints `fastfetch` summary (or `neofetch`, or a tip to install).
 ```
+
+### `scripts/install-fonts-linux.sh`
+
+Installs fonts listed in `fonts/manifest.json` into `~/.local/share/fonts`, then runs `fc-cache`.
+
+### `scripts/win/install-fonts.ps1`
+
+Installs fonts listed in `fonts/manifest.json` into the per-user Windows fonts folder and refreshes font cache.
+
+### `scripts/win/sync-windows-terminal.ps1`
+
+Copies or symlinks `win/windows-terminal/settings.json` into the correct Windows Terminal directory.
 
 ### `scripts/detect-os.sh`
 
@@ -405,7 +514,7 @@ If `zsh` exists, sets it as the login shell via `chsh` (best-effort; safe to fai
 
 ### `scripts/wsl-post.sh`
 
-WSL niceties: clipboard tool, Git line endings (`core.autocrlf=input`), and `win32yank.exe` shim for Neovim clipboard if available.
+WSL niceties: clipboard tool, Git line endings (`core.autocrlf=input`), and optional `win32yank.exe` shim for Neovim clipboard.
 
 ---
 
@@ -415,24 +524,24 @@ WSL niceties: clipboard tool, Git line endings (`core.autocrlf=input`), and `win
 * `stow/hosts/$(hostname)/` stows after `@common`
 * `stow/hosts/wsl/` stows last on WSL
 
-Put machine-specific tweaks (aliases, fonts, term settings, etc.) into the appropriate overlay and re-run `./stow-all.sh`.
+Put machine-specific tweaks (aliases, term settings, etc.) into the appropriate overlay and re-run `./stow-all.sh`.
 
 ---
 
 ## Troubleshooting
 
-* **`nvim` wrong binary**  → Ensure `~/.local/bin` is early in `PATH` (set in `.zshrc`).
-* **`mise` not recognized after bootstrap**  → Open a new shell (installer adds activation to your `~/.zshrc`) or `source ~/.zshrc`.
-* **`git subtree` missing**  → Linux: `sudo apt install git-subtree` (included in `packages/apt.txt`). macOS: `brew install git`.
-* **Startup upgrades blocking prompt**  → They won’t in `--auto`. To do real upgrades, set `DOTFILES_STARTUP_AUTO_UPGRADE=1`. For immediate full upgrades with prompts, run `~/.dotfiles/scripts/startup.sh` without `--auto`.
-* **Nightly Neovim download fails**  → Check CPU arch handling in `nvim-manager.sh`; open an issue to add your arch if needed.
+* **`nvim` wrong binary** → Ensure `~/.local/bin` is early in `PATH` (set in `.zshrc`).
+* **`mise` not recognized after bootstrap** → Open a new shell (installer adds activation to your `~/.zshrc`) or `source ~/.zshrc`.
+* **`git subtree` missing** → Linux: `sudo apt install git-subtree` (in `packages/apt.txt`). macOS: `brew install git`.
+* **Startup upgrades blocking prompt** → They won’t in `--auto`. To do real upgrades, set `DOTFILES_STARTUP_AUTO_UPGRADE=1`. For immediate full upgrades with prompts, run `~/.dotfiles/scripts/startup.sh` without `--auto`.
+* **Nightly Neovim download fails** → Check CPU arch handling in `nvim-manager.sh`; open an issue to add your arch if needed.
 
 ---
 
 ## Contributing / customizing
 
 * Add more stow packages under `stow/<name>/` mirroring `$HOME` paths.
-* Extend `mise-setup-globals.sh` with more `npm:` or `cargo:` globals and `tool@version` pins.
+* Extend `mise-setup-globals.sh` with more `npm:` or `cargo:` globals and tool pins.
 * Layer host-specific overrides in `stow/hosts/`.
 * Tweak `packages/apt.txt` as you like; keep version-critical stuff out (we use mise for that).
 
