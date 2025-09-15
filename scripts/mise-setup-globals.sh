@@ -28,7 +28,7 @@ fi
 "${MISE_BIN}" use -g -y npm:npm@latest
 
 # cargo-installed CLIs (requires rust above)
-"${MISE_BIN}" use -g -y cargo:ripgrep-all
+"${MISE_BIN}" use -g -y cargo:ripgrep_all
 
 # Regenerate shims
 "${MISE_BIN}" reshim || true
