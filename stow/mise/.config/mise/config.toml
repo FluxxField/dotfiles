@@ -1,0 +1,6 @@
+[tools]
+"cargo:ripgrep_all" = "latest"
+go = "latest"
+node = "lts"
+"npm:npm" = "latest"
+rust = "latest"
