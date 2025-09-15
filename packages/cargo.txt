@@ -1,3 +1,0 @@
-exa
-ripgrep-all
-just

@@ -26,9 +26,13 @@ fi
 # ------------------------------
 # npm globals (requires node above)
 "${MISE_BIN}" use -g -y npm:npm@latest
+"${MISE_BIN}" use -g -y npm:@mermaid-js/mermaid-cli@latest
+"${MISE_BIN}" use -g -y npm:tree-sitter-cli@latest
 
 # cargo-installed CLIs (requires rust above)
 "${MISE_BIN}" use -g -y cargo:ripgrep_all
+"${MISE_BIN}" use -g -y cargo:bottom
+"${MISE_BIN}" use -g -y cargo:just
 
 # Regenerate shims
 "${MISE_BIN}" reshim || true
