@@ -31,6 +31,7 @@ fi
 
 # cargo-installed CLIs (requires rust above)
 "${MISE_BIN}" use -g -y cargo:zellij
+"${MISE_BIN}" use -g -y cargo:exa
 "${MISE_BIN}" use -g -y cargo:ripgrep_all
 "${MISE_BIN}" use -g -y cargo:bottom
 "${MISE_BIN}" use -g -y cargo:just

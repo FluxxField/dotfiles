@@ -25,7 +25,6 @@ ffmpeg
 git
 git-subtree
 fontconfig
-exa
 xdg-utils
 ghostscript
 texlive-latex-base
