@@ -15,7 +15,6 @@ zip
 make
 python3-pip
 neovim
-zellij
 starship
 fonts-powerline
 zoxide
@@ -29,6 +28,5 @@ fontconfig
 exa
 xdg-utils
 ghostscript
-tectonic
 texlive-latex-base
 gdu
