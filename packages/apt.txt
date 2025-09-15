@@ -30,3 +30,4 @@ ffmpeg
 git
 git-subtree
 fontconfig
+exa
