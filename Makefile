@@ -4,7 +4,7 @@ SHELL := /usr/bin/env bash
 HOST := $(shell hostname)
 
 help:
-	@echo "Targets: bootstrap | link | unlink | restow | adopt | adopt-dry | mise-globals | nvim-subtree-pull | nvim-subtree-push | nvim-stable | nvim-nightly | nvim-switch-stable | nvim-switch-nightly | fonts-linux | fonts-windows | doctor"
+	@echo "Targets: bootstrap | link | unlink | restow | adopt | adopt-dry | adopt-merge | mise-globals | nvim-subtree-pull | nvim-subtree-push | nvim-stable | nvim-nightly | nvim-switch-stable | nvim-switch-nightly | fonts-linux | fonts-windows | doctor"
 
 bootstrap:
 	bash bootstrap.sh
@@ -23,6 +23,12 @@ adopt:
 
 adopt-dry:
 	bash scripts/adopt-existing.sh --dry-run
+
+adopt-merge:
+	@echo "1) Adopting existing files (will backup to .migration_backups/)..."
+	bash scripts/adopt-existing.sh
+	@echo "2) Launching merge tool against latest backups..."
+	MERGE_TOOL=$${MERGE_TOOL:-nvimdiff} bash scripts/merge-from-backup.sh
 
 mise-globals:
 	bash scripts/mide-setup-globas.sh
