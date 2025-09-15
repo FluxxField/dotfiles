@@ -1,7 +1,3 @@
-# NOTE: Do not apt install neovim, install using Github release page
-# NOTE: Language runtimes are managed by mise, do not apt install node
-
-# base
 build-essential
 htop
 net-tools
