@@ -15,9 +15,9 @@ OS="$(uname -s)"
 ARCH="$(uname -m)"
 HOME_BIN="$HOME/.local/bin"
 INSTALL_ROOT="$HOME/.local/nvim"
-LINUX_STABLE_URL_X64="https://github.com/neovim/neovim/releases/download/stable/nvim-linux64.tar.gz"
+LINUX_STABLE_URL_X64="https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz"
 LINUX_STABLE_URL_ARM64_FALLBACK="https://github.com/neovim/neovim/releases/download/stable/nvim-linux-arm64.tar.gz"
-LINUX_NIGHTLY_URL_X64="https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz"
+LINUX_NIGHTLY_URL_X64="https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz"
 LINUX_NIGHTLY_URL_ARM64="https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-arm64.tar.gz"
 
 need() { command -v "$1" >/dev/null 2>&1 || {
