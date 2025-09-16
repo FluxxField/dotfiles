@@ -14,27 +14,22 @@ fi
 # ------------------------------
 # Core toolchains with mise
 # ------------------------------
-# Rust (toolchain managed by mise; replaces rustup step)
-"${MISE_BIN}" use -g -y rust@latest
-
-# Node + Go (global)
-"${MISE_BIN}" use -g -y node@lts
-"${MISE_BIN}" use -g -y go@latest
+"${MISE_BIN}" use -g rust@latest
+"${MISE_BIN}" use -g node@lts
+"${MISE_BIN}" use -g go@latest
 
 # ------------------------------
 # Global packages via mise backends
 # ------------------------------
-# npm globals (requires node above)
-"${MISE_BIN}" use -g -y npm:npm@latest
-"${MISE_BIN}" use -g -y npm:@mermaid-js/mermaid-cli@latest
-"${MISE_BIN}" use -g -y npm:tree-sitter-cli@latest
+"${MISE_BIN}" use -g npm:npm
+"${MISE_BIN}" use -g npm:@mermaid-js/mermaid-cli
+"${MISE_BIN}" use -g npm:tree-sitter-cli
 
-# cargo-installed CLIs (requires rust above)
-"${MISE_BIN}" use -g -y cargo:zellij
-"${MISE_BIN}" use -g -y cargo:exa
-"${MISE_BIN}" use -g -y cargo:ripgrep_all
-"${MISE_BIN}" use -g -y cargo:bottom
-"${MISE_BIN}" use -g -y cargo:just
+"${MISE_BIN}" use -g cargo:zellij
+"${MISE_BIN}" use -g cargo:exa
+"${MISE_BIN}" use -g cargo:ripgrep_all
+"${MISE_BIN}" use -g cargo:bottom
+"${MISE_BIN}" use -g cargo:just
 
 # Regenerate shims
 "${MISE_BIN}" reshim || true
