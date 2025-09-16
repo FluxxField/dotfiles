@@ -14,16 +14,13 @@ unzip
 zip
 make
 python3-pip
-neovim
 starship
 fonts-powerline
 zoxide
-lazygit
 pandoc
 poppler-utils
 ffmpeg
 git
-git-subtree
 fontconfig
 xdg-utils
 ghostscript

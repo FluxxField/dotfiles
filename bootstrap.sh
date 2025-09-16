@@ -42,6 +42,9 @@ if [[ "$INSTALL_FONTS" == "1" ]]; then
   fi
 fi
 
+bash scripts/nvim-manager.sh install stable || true
+bash scripts/nvim-manager.sh switch stable || true
+
 bash scripts/install-mise.sh
 bash scripts/mise-setup-globals.sh
 
