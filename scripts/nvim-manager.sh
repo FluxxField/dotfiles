@@ -11,7 +11,7 @@ BINLINK="$HOME/.local/bin/nvim"
 detect_os() { [[ "$(uname -s)" == "Darwin" ]] && echo mac || echo linux; }
 arch_asset() {
   case "$(uname -m)" in
-  x86_64) echo "linux64" ;;
+  x86_64) echo "linux-x86_64" ;;
   aarch64 | arm64) echo "linux-arm64" ;;
   *) echo "unsupported" ;;
   esac
