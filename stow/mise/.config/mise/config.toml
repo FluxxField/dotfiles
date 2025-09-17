@@ -1,5 +1,18 @@
 [tools]
+cargo-binstall = "latest"
+"cargo:bottom" = "latest"
 "cargo:eza" = "latest"
+"cargo:just" = "latest"
+"cargo:ripgrep_all" = "latest"
+"cargo:zellij" = "latest"
 go = "latest"
 node = "lts"
+"npm:@mermaid-js/mermaid-cli" = "latest"
+"npm:npm" = "latest"
+"npm:tree-sitter-cli" = "latest"
 rust = "latest"
+
+[settings]
+
+[settings.cargo]
+binstall = true

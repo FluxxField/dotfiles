@@ -33,9 +33,9 @@ alias n="nvim"
 alias vim="nvim"
 alias v="nvim"
 alias fd="fdfind"
-alias ls="exa"
-alias la="exa -a"
-alias ll="exa -l"
+alias ls="eza"
+alias la="eza -a"
+alias ll="eza -l"
 
 bindkey '^I' complete-word         # tab | complete
 bindkey '^[[Z' autosuggest-execute # shift + tab | autosuggest
@@ -62,3 +62,4 @@ fi
 
 eval "$(starship init zsh)"
 eval "$(zoxide init zsh)"
+eval "$(/home/keenan/.local/bin/mise activate zsh)" # added by https://mise.run/zsh
