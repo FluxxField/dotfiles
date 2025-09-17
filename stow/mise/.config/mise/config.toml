@@ -10,6 +10,7 @@ node = "lts"
 "npm:@mermaid-js/mermaid-cli" = "latest"
 "npm:npm" = "latest"
 "npm:tree-sitter-cli" = "latest"
+"npm:typescript" = "latest"
 rust = "latest"
 
 [settings]
