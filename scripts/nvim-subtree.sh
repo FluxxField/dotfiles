@@ -28,7 +28,7 @@ require_clean_tree() {
 }
 
 require_subtree_cmd() {
-  if ! git subtree -h >/dev/null 2>&1; then
+  if ! command -v git subtree >/dev/null 2>&1; then
     echo "git subtree not available. Install git-subtree (Ubuntu: apt install git-subtree)." >&2
     exit 1
   fi
