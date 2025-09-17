@@ -36,21 +36,21 @@ download_extract_linux() {
   ensure_dirs
 
   # Robust temp dir (fixes “tmpdir: unbound variable”)
-  local TMP
-  TMP="$(mktemp -d)"
-  trap 'rm -rf "$TMP"' EXIT
+  local _TMP=""
+  _TMP="$(mktemp -d)"
+  trap 'rm -rf "$_TMP"' EXIT
 
   echo "[nvim] Downloading: $url"
-  curl -fsSL "$url" -o "$TMP/nvim.tgz"
+  curl -fsSL "$url" -o "$_TMP/nvim.tgz"
 
   echo "[nvim] Extracting to: $dest"
   rm -rf "$dest"
   mkdir -p "$dest"
 
-  tar -xzf "$TMP/nvim.tgz" -C "$TMP"
+  tar -xzf "$_TMP/nvim.tgz" -C "$_TMP"
   # archive extracts as "nvim-linux*/" -> move its contents into $dest
   local extracted
-  extracted="$(find "$TMP" -maxdepth 1 -type d -name 'nvim-*' -print -quit)"
+  extracted="$(find "$_TMP" -maxdepth 1 -type d -name 'nvim-*' -print -quit)"
   if [[ -z "${extracted:-}" ]]; then
     echo "Could not locate extracted nvim directory in archive." >&2
     exit 2
