@@ -46,6 +46,7 @@ ZSH_AUTOSUGGEST_USE_ASYNC=true
 export LC_ALL="en_US.UTF-8"
 export EDITOR="nvim"
 export PATH="$PATH:/opt/nvim/"
+export GPG_TTY=$(tty)
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 

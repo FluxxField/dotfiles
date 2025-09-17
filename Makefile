@@ -10,7 +10,7 @@ bootstrap:
 	bash bootstrap.sh
 
 link:
-	./stow-all.sh
+	bash stow-all.sh
 
 unlink:
 	find stow -maxdepth 1 -mindepth 1 -type d -printf "%f\n" | xargs -I{} stow -d stow -t $$HOME -D {}

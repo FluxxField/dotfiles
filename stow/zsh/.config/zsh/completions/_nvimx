@@ -1,0 +1,5 @@
+#compdef nvimx
+
+_arguments \
+  '1:cmd:(use current install switch)' \
+  '2:channel:(stable nightly)'

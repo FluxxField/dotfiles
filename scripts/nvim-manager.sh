@@ -176,7 +176,6 @@ usage() {
 Usage:
   $0 use {stable|nightly}      # ensure installed; switch only if needed
   $0 current
-(install/switch are aliases to 'use' for backward compatibility)
 EOF
 }
 

@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# ~/.local/bin/nvimx — Ubuntu-style CLI for Neovim channel management
+# Canonical:
+#   nvimx use stable|nightly
+#   nvimx use --channel stable|nightly
+#   nvimx current
+set -euo pipefail
+
+VERSION="1.0.0"
+
+print_help() {
+  cat <<'EOF'
+nvimx — manage Neovim channels (stable/nightly)
+
+Usage:
+  nvimx use <channel>           Ensure installed; switch only if needed
+  nvimx use --channel <channel>
+  nvimx current                 Show active channel/version
+  nvimx --help | -h
+  nvimx --version | -V
+
+Options:
+  -c, --channel <stable|nightly>  Channel when using 'use'
+  -q, --quiet                     Reduce output (pass-through)
+  --root <path>                   Dotfiles root (defaults to ~/.dotfiles or DOTFILES_ROOT)
+
+Compatibility aliases (still accepted):
+  nvimx stable            -> nvimx use stable
+  nvimx nightly           -> nvimx use nightly
+  nvimx --stable | -s     -> nvimx use stable
+  nvimx --nightly | -n    -> nvimx use nightly
+  nvimx install|switch X  -> nvimx use X
+EOF
+}
+
+# ---- locate repo root -------------------------------------------------------
+guess_root() {
+  [[ -n "${DOTFILES_ROOT:-}" && -d "$DOTFILES_ROOT/scripts" ]] && { echo "$DOTFILES_ROOT"; return; }
+  [[ -d "$HOME/.dotfiles/scripts" ]] && { echo "$HOME/.dotfiles"; return; }
+  # Walk up from this script
+  local self="${BASH_SOURCE[0]:-$0}" real="$self" p
+  if command -v readlink >/dev/null 2>&1 && readlink -f "$self" >/dev/null 2>&1; then
+    real="$(readlink -f "$self")"
+  elif command -v python3 >/dev/null 2>&1; then
+    real="$(python3 - "$self" <<'PY'
+import os,sys; print(os.path.realpath(sys.argv[1]))
+PY
+)"
+  fi
+  p="$(dirname "$real")"
+  for _ in 1 2 3 4 5 6; do
+    [[ -f "$p/scripts/nvim-manager.sh" ]] && { echo "$p"; return; }
+    p="$(dirname "$p")"
+  done
+}
+
+ROOT="$(guess_root || true)"
+MANAGER="${ROOT:-}/scripts/nvim-manager.sh"
+ensure_manager() {
+  if [[ -z "${ROOT:-}" || ! -f "$MANAGER" ]]; then
+    echo "nvimx: could not locate dotfiles repo (set DOTFILES_ROOT=~/.dotfiles or use --root <path>)" >&2
+    exit 1
+  fi
+}
+
+# ---- parse args (Ubuntu/GNU style) -----------------------------------------
+cmd="" channel="" quiet=0 root_override=""
+# Manual parse to avoid nonportable getopt(1) differences across distros/macOS
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    use|current|install|switch|stable|nightly)
+      if [[ -z "$cmd" ]]; then cmd="$1"; else
+        # second word might be channel for 'use'
+        if [[ -z "$channel" && ( "$cmd" == "use" || "$cmd" == "install" || "$cmd" == "switch" ) ]]; then
+          channel="$1"
+        else
+          echo "nvimx: unexpected argument '$1'"; print_help; exit 2
+        fi
+      fi
+      shift
+      ;;
+    --channel|-c)
+      channel="${2:-}"; [[ -z "$channel" ]] && { echo "nvimx: --channel needs a value"; exit 2; }
+      shift 2
+      ;;
+    --stable|-s)  channel="stable"; [[ -z "$cmd" ]] && cmd="use"; shift ;;
+    --nightly|-n) channel="nightly"; [[ -z "$cmd" ]] && cmd="use"; shift ;;
+    --root) root_override="${2:-}"; shift 2 ;;
+    --quiet|-q) quiet=1; shift ;;
+    --help|-h) print_help; exit 0 ;;
+    --version|-V) echo "nvimx $VERSION"; exit 0 ;;
+    *) echo "nvimx: unknown arg '$1'"; print_help; exit 2 ;;
+  esac
+done
+
+# Normalize legacy/shortcut forms
+case "$cmd" in
+  stable)  cmd="use"; channel="stable" ;;
+  nightly) cmd="use"; channel="nightly" ;;
+  install|switch) cmd="use" ;; # same semantics
+esac
+
+# Allow --root override last
+if [[ -n "$root_override" ]]; then
+  ROOT="$root_override"
+  MANAGER="$ROOT/scripts/nvim-manager.sh"
+fi
+ensure_manager
+
+# Quiet mode currently just passes through; you could export NVIMX_QUIET if needed.
+if [[ ! -x "$MANAGER" ]]; then
+  # No exec bit (or noexec fs) — run via bash
+  runner=(bash "$MANAGER")
+else
+  runner=("$MANAGER")
+fi
+
+# Dispatch
+case "${cmd:-}" in
+  use)
+    [[ -z "$channel" ]] && { echo "nvimx: missing channel (stable|nightly)"; print_help; exit 2; }
+    exec "${runner[@]}" use "$channel"
+    ;;
+  current|"")
+    exec "${runner[@]}" current
+    ;;
+  *)
+    echo "nvimx: unknown command '$cmd'"; print_help; exit 2 ;;
+esac
