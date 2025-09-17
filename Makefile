@@ -40,16 +40,13 @@ nvim-subtree-push:
 	bash scripts/nvim-subtree.sh push
 
 nvim-stable:
-	bash scripts/nvim-manager.sh install stable && bash scripts/nvim-manager.sh switch stable
+	bash scripts/nvim-manager.sh use stable
 
 nvim-nightly:
-	bash scripts/nvim-manager.sh install nightly && bash scripts/nvim-manager.sh switch nightly
+	bash scripts/nvim-manager.sh use nightly
 
-nvim-switch-stable:
-	bash scripts/nvim-manager.sh switch stable
-
-nvim-switch-nightly:
-	bash scripts/nvim-manager.sh switch nightly
+nvim-current:
+	bash scripts/nvim-manager.sh current
 
 fonts-linux:
 	bash scripts/install-fonts.sh
