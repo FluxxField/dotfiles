@@ -26,3 +26,6 @@ xdg-utils
 ghostscript
 texlive-latex-base
 gdu
+luarocks
+lau5.4
+imagemagick
