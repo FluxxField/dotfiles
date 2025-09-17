@@ -22,7 +22,10 @@ if [[ "$OS" == "linux" ]]; then
   bash scripts/install-apt.sh
 fi
 
-# 1.1) Fonts (shared manifest) — Linux fonts + (if WSL) Windows fonts via PowerShell
+# 1.1) Ensure locale en_US.UTF-8 exists (Ubuntu/WSL often missing)
+bash scripts/ensure-locale.sh || true
+
+# 1.2) Fonts (shared manifest) — Linux fonts + (if WSL) Windows fonts via PowerShell
 # Toggle with DOTFILES_INSTALL_FONTS=0 to skip
 INSTALL_FONTS="${DOTFILES_INSTALL_FONTS:-1}"
 if [[ "$INSTALL_FONTS" == "1" ]]; then
@@ -42,28 +45,34 @@ if [[ "$INSTALL_FONTS" == "1" ]]; then
   fi
 fi
 
-bash scripts/install-lazygit.sh || true
+# 2) Shell: zsh + oh-my-zsh and plugins
+bash scripts/ohmyzsh-install.sh || true
 
-bash scripts/nvim-manager.sh install stable || true
-bash scripts/nvim-manager.sh switch stable || true
-
+# 3) mise (version manager) and activation
 bash scripts/install-mise.sh
-bash scripts/mise-setup-globals.sh
 
-# 3) Neovim config via git subtree (pull latest if configured)
+# 4) Post-mise globals (run inside zsh so .zshrc + omz + mise activation are sourced)
+bash scripts/install-mise-globals.sh
+
+# 5) Neovim config via git subtree (pull latest if configured)
 bash scripts/nvim-subtree.sh pull --auto || true
 
-# 2) Default shell to zsh (if installed)
-bash scripts/set-default-shell-zsh.sh || true
+# 6) Neovim binary
+bash scripts/nvim-manager.sh use stable || true
 
-# 3) WSL niceties
-if [[ "$WSL" == "1" ]]; then
-  bash scripts/wsl-post.sh || true
-fi
+# 7) Extras
+bash scripts/install-lazygit.sh || true
 
-# 4) Optional: install Starship prompt if present in package list
 if ! command -v starship >/dev/null; then
   curl -fsSL https://starship.rs/install.sh | bash -s -- -y
+fi
+
+# 8) Default shell to zsh (if installed)
+bash scripts/set-default-shell-zsh.sh || true
+
+# 9) WSL niceties
+if [[ "$WSL" == "1" ]]; then
+  bash scripts/wsl-post.sh || true
 fi
 
 echo "Bootstrap complete. Run ./stow-all.sh to link configs."
