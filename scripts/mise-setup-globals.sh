@@ -26,7 +26,7 @@ fi
 # "${MISE_BIN}" use -g npm:tree-sitter-cli
 
 # "${MISE_BIN}" use -g cargo:zellij
-# "${MISE_BIN}" use -g cargo:exa
+# "${MISE_BIN}" use -g cargo:eza
 # "${MISE_BIN}" use -g cargo:ripgrep_all
 # "${MISE_BIN}" use -g cargo:bottom
 # "${MISE_BIN}" use -g cargo:just

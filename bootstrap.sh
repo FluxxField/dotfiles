@@ -42,6 +42,8 @@ if [[ "$INSTALL_FONTS" == "1" ]]; then
   fi
 fi
 
+bash scripts/install-lazygit.sh || true
+
 bash scripts/nvim-manager.sh install stable || true
 bash scripts/nvim-manager.sh switch stable || true
 
