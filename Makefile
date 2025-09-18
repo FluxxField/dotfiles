@@ -4,10 +4,13 @@ SHELL := /usr/bin/env bash
 HOST := $(shell hostname)
 
 help:
-	@echo "Targets: bootstrap | link | unlink | restow | adopt | adopt-dry | adopt-merge | mise-globals | nvim-subtree-pull | nvim-subtree-push | nvim-stable | nvim-nightly | nvim-switch-stable | nvim-switch-nightly | fonts-linux | fonts-windows | doctor"
+	@echo "Targets: bootstrap | link | unlink | restow | adopt | adopt-dry | adopt-merge | ensure-locale | mise-install | mise-install-globals | ohmyzsh-install | nvim-subtree-pull | nvim-subtree-push | nvim-stable | nvim-nightly | nvim-switch-stable | nvim-switch-nightly | fonts-linux | fonts-windows | startup | doctor"
 
 bootstrap:
 	bash bootstrap.sh
+
+startup:
+	bash scripts/startup.sh
 
 link:
 	bash stow-all.sh
@@ -30,8 +33,17 @@ adopt-merge:
 	@echo "2) Launching merge tool against latest backups..."
 	MERGE_TOOL=$${MERGE_TOOL:-nvimdiff} bash scripts/merge-from-backup.sh
 
-mise-globals:
-	bash scripts/mide-setup-globas.sh
+ensure-locale:
+	bash scripts/ensure-locale.sh
+
+ohmyzsh-install:
+	bash scripts/ohmyzsh-install.sh
+
+mise-install:
+	bash scripts/install-mise.sh
+
+mise-install-globals:
+	bash scripts/install-mise-globals.sh
 
 nvim-subtree-pull:
 	bash scripts/nvim-subtree.sh pull

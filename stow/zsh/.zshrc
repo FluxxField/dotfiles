@@ -23,6 +23,11 @@ if [ -f "$HOME/.config/dotfiles/env.sh" ]; then
   . "$HOME/.config/dotfiles/env.sh"
 fi
 
+# mise activation
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate zsh)"
+fi
+
 # fzf keybindings
 if [ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]; then
   source /usr/share/doc/fzf/examples/key-bindings.zsh
@@ -62,4 +67,3 @@ fi
 
 eval "$(starship init zsh)"
 eval "$(zoxide init zsh)"
-eval "$(/home/keenan/.local/bin/mise activate zsh)" # added by https://mise.run/zsh
