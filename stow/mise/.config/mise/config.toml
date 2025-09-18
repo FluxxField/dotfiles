@@ -11,6 +11,7 @@ node = "lts"
 "npm:npm" = "latest"
 "npm:tree-sitter-cli" = "latest"
 "npm:typescript" = "latest"
+"npm:vercel" = "latest"
 rust = "latest"
 
 [settings]
