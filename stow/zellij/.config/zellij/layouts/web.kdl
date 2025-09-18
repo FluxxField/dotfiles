@@ -4,7 +4,9 @@ layout {
     pane size=1 borderless=true {
       plugin location="zellij:tab-bar"
     }
+
     children
+
     pane size=2 borderless=true {
       plugin location="zellij:status-bar"
     }
@@ -12,9 +14,10 @@ layout {
 
   // Puts the terminal under the code
   pane_template name="dev_under_files" {
-    pane split_direction="horizontal" {
+    pane split_direction="vertical" {
       children
-      pane split_direction="vertical" size="30%" {
+
+      pane split_direction="horizontal" size="20%" {
         pane command="npm" {
             args "run" "dev"
         }
