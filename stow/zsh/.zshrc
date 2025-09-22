@@ -52,6 +52,10 @@ export LC_ALL="en_US.UTF-8"
 export EDITOR="nvim"
 export PATH="$PATH:/opt/nvim/"
 
+# SSH
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+
 # GPG
 export GPG_TTY=$(tty)
 gpgconf --launch gpg-agent
