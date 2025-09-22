@@ -17,3 +17,5 @@ export PATH="$GOPATH/bin:$PATH"
 
 # Re-exec into zsh at the end of bootstrap
 export DOTFILES_REEXEC_ZSH="${DOTFILES_REEXEC_ZSH:-1}"
+
+export WINUSER="$(cmd.exe /C "echo %USERNAME%)" | tr -d '\r')"
