@@ -30,7 +30,7 @@ return {
         spell = false, -- sets vim.opt.spell
         signcolumn = "yes", -- sets vim.opt.signcolumn to yes
         wrap = true, -- sets vim.opt.wrap
-        -- clipboard = "unnamedplus",
+        clipboard = "unnamedplus",
       },
       g = { -- vim.g.<key>
         -- configure global vim variables (vim.g)
@@ -39,14 +39,14 @@ return {
         --
         -- NOTE: Probably need to make this conditional based on if we have WSL
         clipboard = {
-          name = "WslClipboard",
+          name = "unnamedplus",
           copy = {
-            ["+"] = "clip.exe",
-            ["*"] = "clip.exe",
+            ["+"] = "win32yank.exe -i --crlf",
+            ["*"] = "win32yank.exe -i --crlf",
           },
           paste = {
-            ["+"] = 'powershell.exe -NoLogo -NoProfile -Command [Console]::Out.Write($(Get-Clipboard -Raw).ToString().Replace("`r", ""))',
-            ["*"] = 'powershell.exe -NoLogo -NoProfile -Command [Console]::Out.Write($(Get-Clipboard -Raw).ToString().Replace("`r", ""))',
+            ["+"] = "win32yank.exe -o --lf",
+            ["*"] = "win32yank.exe -o --lf",
           },
           cache_enabled = 0,
         },
