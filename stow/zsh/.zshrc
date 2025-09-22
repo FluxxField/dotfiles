@@ -51,7 +51,10 @@ ZSH_AUTOSUGGEST_USE_ASYNC=true
 export LC_ALL="en_US.UTF-8"
 export EDITOR="nvim"
 export PATH="$PATH:/opt/nvim/"
+
+# GPG
 export GPG_TTY=$(tty)
+gpgconf --launch gpg-agent
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
