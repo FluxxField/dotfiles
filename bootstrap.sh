@@ -31,7 +31,7 @@ INSTALL_FONTS="${DOTFILES_INSTALL_FONTS:-1}"
 if [[ "$INSTALL_FONTS" == "1" ]]; then
   if [[ "$OS" == "linux" ]]; then
     echo "[bootstrap] Installing Linux fonts from fonts/manifest.json ..."
-    bash scripts/install-fonts-linux.sh || true
+    bash scripts/install-fonts.sh || true
     if [[ "$WSL" == "1" ]]; then
       echo "[bootstrap] Installing Windows fonts from fonts/manifest.json (WSL) ..."
       if command -v pwsh.exe >/dev/null 2>&1; then

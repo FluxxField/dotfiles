@@ -37,7 +37,8 @@ fi
 alias n="nvim"
 alias vim="nvim"
 alias v="nvim"
-alias fd="fdfind"
+# fd is named fdfind on Debian/Ubuntu
+command -v fdfind >/dev/null 2>&1 && alias fd="fdfind"
 alias ls="eza"
 alias la="eza -a"
 alias ll="eza -l"

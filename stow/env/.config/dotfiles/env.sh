@@ -15,5 +15,3 @@ export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 export GOPATH="${GOPATH:-$HOME/go}"
 export PATH="$GOPATH/bin:$PATH"
 
-# Re-exec into zsh at the end of bootstrap
-export DOTFILES_REEXEC_ZSH="${DOTFILES_REEXEC_ZSH:-1}"

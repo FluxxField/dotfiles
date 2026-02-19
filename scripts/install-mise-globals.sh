@@ -26,7 +26,6 @@ zsh -lc '
   mise use -g -y npm:@mermaid-js/mermaid-cli
   mise use -g -y npm:tree-sitter-cli
   mise use -g -y npm:typescript
-  mise use -g -y
 
   # Cargo globals
   mise settings set cargo.binstall true

@@ -4,7 +4,7 @@ Manage a full dev environment across Linux, macOS, and WSL2 using:
 
 * **GNU Stow** for clean, reversible symlinks
 * **mise** for versioned runtimes and global packages (Node, Go, Rust + `npm:` and `cargo:` backends)
-* **Neovim** installed from GitHub releases (stable/nightly) with easy switching
+* **Neovim** installed from GitHub releases (stable/nightly) with easy switching via `nvimx`
 * Linux install policy: **apt → mise → fallback**
 * Optional **Neovim config via git subtree** (keep your nvim repo separate but vendor it here)
 * **Startup checks/upgrades** (apt/brew/mise) + `fastfetch`, with safe caching
@@ -28,7 +28,7 @@ cd .dotfiles
 # Install tooling, mise, global toolchains & packages, fonts (by default), Neovim stable, etc.
 bash bootstrap.sh
 
-# Symlink all configs (zsh, git, nvim, starship, env, etc.)
+# Symlink all configs (zsh, git, nvim, starship, mise, zellij, etc.)
 ./stow-all.sh
 
 # Open a NEW terminal so mise activation & PATH apply
@@ -95,25 +95,26 @@ What it does:
 
 * **Shell & CLI**
 
-  * `zsh` + **Starship** prompt
-  * `ripgrep`, `fzf`, `fd`, `bat`, `lazygit` (via smart installer)
+  * `zsh` + **oh-my-zsh** (zsh-autosuggestions, zsh-syntax-highlighting) + **Starship** prompt
+  * `ripgrep`, `fzf`, `fd-find`, `bat`, `lazygit`, `zoxide`, `eza` (via mise)
   * `fastfetch` summary on shell start (opt-in auto-upgrades)
+  * `zellij` terminal multiplexer (installed via mise, config tracked in `stow/zellij`)
 
 * **Runtimes & globals (via mise)**
 
-  * `rust@latest`, `node@lts`, `go@latest`
-  * `npm:npm@latest`, `npm:prettier`
-  * `cargo:ripgrep-all` (example; extend as you like)
+  * Toolchains: `rust@latest`, `node@lts`, `go@latest`
+  * npm globals: `npm@latest`, `typescript`, `tree-sitter-cli`, `@mermaid-js/mermaid-cli`
+  * cargo globals: `cargo-binstall`, `ripgrep-all`, `bottom`, `eza`, `zellij`, `just`
 
 * **Neovim**
 
   * Installed from GitHub release tarballs on Linux (stable/nightly channels)
-  * Easy switching via symlink (`~/.local/bin/nvim`)
+  * Easy switching via `nvimx` CLI (`nvimx use stable|nightly`, `nvimx current`)
   * On macOS, uses Homebrew stable or `--HEAD` for nightly
 
 * **Config management**
 
-  * Stowed packages under `stow/` (`zsh`, `nvim`, `git`, `starship`, `env`, etc.)
+  * Stowed packages under `stow/` (`zsh`, `nvim`, `git`, `env`, `mise`, `zellij`, `bin`)
   * Host overlays: `stow/hosts/@common`, `stow/hosts/$(hostname)`, `stow/hosts/wsl`
 
 * **Fonts**
@@ -150,7 +151,7 @@ Then set your Windows Terminal profile:
 **Linux / WSL (for WSLg GUI apps & Linux terminals)**
 
 ```bash
-scripts/install-fonts-linux.sh
+scripts/install-fonts.sh
 ```
 
 Installs into `~/.local/share/fonts/NerdFonts/...` and refreshes with `fc-cache`.
@@ -186,27 +187,33 @@ Installs into `~/.local/share/fonts/NerdFonts/...` and refreshes with `fc-cache`
 │   └── brew-Brewfile          # optional; brew bundle if you want
 ├── scripts/
 │   ├── detect-os.sh
+│   ├── ensure-locale.sh
 │   ├── install-apt.sh
 │   ├── install-brew.sh
+│   ├── install-fonts.sh
+│   ├── install-lazygit.sh
 │   ├── install-mise.sh
-│   ├── mise-setup-globals.sh
+│   ├── install-mise-globals.sh
 │   ├── nvim-manager.sh
 │   ├── nvim-subtree.sh
+│   ├── ohmyzsh-install.sh
 │   ├── set-default-shell-zsh.sh
 │   ├── wsl-post.sh
-│   ├── smart-install.sh
 │   ├── startup.sh
+│   ├── adopt-existing.sh
 │   ├── merge-from-backup.sh
-│   ├── install-fonts-linux.sh
 │   └── win/
 │       ├── install-fonts.ps1
 │       └── sync-windows-terminal.ps1
 └── stow/
     ├── zsh/                   # .zshrc (sources ~/.config/dotfiles/env.sh, runs startup hook)
-    ├── git/                   # .gitconfig, .gitignore_global, aliases
+    ├── git/                   # .gitconfig, .gitignore_global
     ├── nvim/                  # .config/nvim (can be a subtree of your separate nvim repo)
-    ├── starship/              # .config/starship.toml
+    ├── mise/                  # .config/mise/config.toml (global toolchains + packages)
+    ├── zellij/                # .config/zellij/ (config.kdl + layouts/)
     ├── env/                   # .config/dotfiles/env.sh (env vars; stowed and sourced by .zshrc)
+    ├── bin/                   # .local/bin/nvimx (Neovim channel manager CLI)
+    ├── ssh/                   # .ssh/config (template; stow-all.sh fixes permissions to 600)
     └── hosts/
         ├── @common/           # overlay on all machines
         ├── $(hostname)/       # machine-specific overlay
@@ -222,15 +229,17 @@ bootstrap              Install base tooling, fonts (configurable), mise + global
 link / unlink / restow Stow, unstow, or restow all packages
 adopt-dry / adopt      Dry-run or adopt existing files into repo (backs up conflicts)
 adopt-merge            Interactively merge repo files with latest backup snapshot
-mise-globals           Re-apply global mise toolchains and packages
+ohmyzsh-install        Install/update oh-my-zsh and plugins
+mise-install           Install mise version manager
+mise-install-globals   Re-apply global mise toolchains and packages
 nvim-stable            Install + switch to Neovim stable
 nvim-nightly           Install + switch to Neovim nightly
-nvim-switch-stable     Switch symlink to stable (Linux)
-nvim-switch-nightly    Switch symlink to nightly (Linux)
+nvim-current           Show currently active Neovim channel
 nvim-subtree-pull      Pull latest nvim config from upstream subtree remote
 nvim-subtree-push      Push changes in subtree back to upstream
 fonts-linux            Install fonts per manifest on Linux/WSL
 fonts-windows          Install fonts per manifest on Windows
+startup                Run startup checks/upgrades manually
 doctor                 Quick tool presence checks
 ```
 
@@ -243,14 +252,20 @@ doctor                 Quick tool presence checks
 * **Linux:** tarballs installed to `~/.local/nvim/{stable,nightly}`, with `~/.local/bin/nvim` symlink
 * **macOS:** Homebrew stable; nightly via `brew install --HEAD neovim`
 
+Use `nvimx` (stowed to `~/.local/bin/nvimx`) or the Makefile targets:
+
 ```bash
 # Install/switch stable
 make nvim-stable
 # Install/switch nightly
 make nvim-nightly
-# Switch back and forth (Linux)
-make nvim-switch-stable
-make nvim-switch-nightly
+# Show current channel
+make nvim-current
+
+# Or use nvimx directly
+nvimx use stable
+nvimx use nightly
+nvimx current
 ```
 
 ### Config via git subtree (keep your nvim repo separate)
@@ -283,7 +298,7 @@ Every interactive shell runs:
 Default behavior (safe/fast):
 
 * APT/Homebrew/mise checked on a **24h** cache (tweak via `DOTFILES_STARTUP_INTERVAL_HOURS`)
-* No password prompts (skips upgrades if sudo isn’t cached)
+* No password prompts (skips upgrades if sudo isn't cached)
 * Prints a brief status and then runs **fastfetch** (or **neofetch**, or a tip to install)
 
 Enable auto-upgrades on login (noninteractive) in `~/.config/dotfiles/env.sh`:
@@ -307,13 +322,11 @@ DOTFILES_STARTUP_AUTO_UPGRADE=1 ~/.dotfiles/scripts/startup.sh
 * **mise** for version-controlled toolchains and **backends**:
 
   * Toolchains: `rust@latest`, `node@lts`, `go@latest`
-  * Global packages: `npm:prettier`, `npm:npm@latest`, `cargo:ripgrep-all`, etc.
+  * Global packages: `npm:typescript`, `cargo:eza`, `cargo:zellij`, etc.
 * **Fallback** for:
 
   * Official scripts/binaries (e.g., Starship, lazygit releases) when needed
   * `go install ...@latest` if appropriate
-
-The helper script `scripts/smart-install.sh` applies this policy and exposes flags like `--min-version`.
 
 ---
 
@@ -352,7 +365,6 @@ Keep your Windows Terminal JSONs in the repo and sync them:
 ```
 win/windows-terminal/
   settings.json
-  schemes.json
 scripts/win/sync-windows-terminal.ps1
 ```
 
@@ -369,7 +381,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $HOME '.dotfiles/script
 
 ### `bootstrap.sh`
 
-Idempotent setup: installs Stow, runs `install-apt.sh` (Linux), **installs fonts** (Linux + Windows via WSL by default), installs mise & globals, pulls Neovim subtree (if configured), installs Neovim stable, runs smart installers (starship/lazygit), and prints next steps.
+Idempotent setup: installs Stow, runs `install-apt.sh` (Linux), ensures locale, **installs fonts** (Linux + Windows via WSL by default), installs oh-my-zsh + plugins, installs mise & globals, pulls Neovim subtree (if configured), installs Neovim stable, installs lazygit and starship, sets default shell to zsh, and runs WSL niceties (WSL only).
 
 ### `stow-all.sh`
 
@@ -383,6 +395,14 @@ Installs safe defaults from `packages/apt.txt` (includes `fontconfig` and `unzip
 
 Installs Homebrew on macOS if missing and wires shell env. Use `brew bundle` with `packages/brew-Brewfile` if you want.
 
+### `scripts/ohmyzsh-install.sh`
+
+Installs oh-my-zsh (non-destructive: skips if already present) and clones `zsh-autosuggestions` and `zsh-syntax-highlighting` into `$ZSH_CUSTOM/plugins/`. Safe to re-run.
+
+### `scripts/ensure-locale.sh`
+
+Generates and sets `en_US.UTF-8` locale — needed on minimal Ubuntu/WSL installs. Safe to re-run.
+
 ### `scripts/install-mise.sh`
 
 Official installer (adds activation to your `~/.zshrc`):
@@ -391,39 +411,37 @@ Official installer (adds activation to your `~/.zshrc`):
 curl -fsSL https://mise.run/zsh | sh
 ```
 
-### `scripts/mise-setup-globals.sh`
+### `scripts/install-mise-globals.sh`
 
-Applies global toolchains and packages:
+Applies global toolchains and packages by running inside a login `zsh` so mise activation is available:
 
 ```bash
 mise use -g -y rust@latest
 mise use -g -y node@lts
 mise use -g -y go@latest
 mise use -g -y npm:npm@latest
-mise use -g -y npm:prettier
-mise use -g -y cargo:ripgrep-all
+mise use -g -y npm:typescript
+mise use -g -y cargo:eza
+# ... etc.
 mise reshim
 ```
 
 ### `scripts/nvim-manager.sh`
 
-Install/switch Neovim channels.
+Install/switch Neovim channels. Called via `nvimx` or Makefile targets.
 
 ```
-Usage: nvim-manager.sh {install|switch|current} {stable|nightly}
+Usage: nvim-manager.sh {use|current} {stable|nightly}
 
 Linux:
-  install stable   # download tarball to ~/.local/nvim/stable
-  install nightly  # download tarball to ~/.local/nvim/nightly
-  switch stable    # symlink ~/.local/bin/nvim -> stable
-  switch nightly   # symlink ~/.local/bin/nvim -> nightly
-  current          # show current symlink target
+  use stable   # download tarball to ~/.local/nvim/stable, update symlink
+  use nightly  # download tarball to ~/.local/nvim/nightly, update symlink
+  current      # show current symlink target
 
 macOS:
-  install stable   # brew install neovim
-  install nightly  # brew install --HEAD neovim
-  switch ...       # (advisory) PATH determines which brew nvim wins
-  current          # prints nvim version
+  use stable   # brew install neovim
+  use nightly  # brew install --HEAD neovim
+  current      # prints nvim version
 ```
 
 ### `scripts/nvim-subtree.sh`
@@ -435,11 +453,6 @@ Usage:
   nvim-subtree.sh init <repo-url> [branch]  # one-time add
   nvim-subtree.sh pull [--auto]             # update subtree from upstream
   nvim-subtree.sh push                      # publish changes upstream
-
-Repo-local config:
-  subtree.nvim.remote (default: nvim-origin)
-  subtree.nvim.url
-  subtree.nvim.branch (default: main)
 ```
 
 ### `scripts/adopt-existing.sh`
@@ -467,34 +480,9 @@ Usage:
   MERGE_TOOL=nvimdiff|meld|code scripts/merge-from-backup.sh [pkg...]
 ```
 
-### `scripts/smart-install.sh`
+### `scripts/install-fonts.sh`
 
-Implements **apt → mise → fallback** installation policy.
-
-```
-Usage examples:
-  smart-install.sh starship
-  smart-install.sh lazygit --min-version 0.41.0
-  smart-install.sh "npm:prettier"
-  smart-install.sh "cargo:ripgrep-all"
-```
-
-### `scripts/startup.sh`
-
-Cached checks/upgrades + `fastfetch`. **Won’t block your prompt** in `--auto`.
-
-```
-Usage:
-  startup.sh [--auto]
-
-Env:
-  DOTFILES_STARTUP_INTERVAL_HOURS=24
-  DOTFILES_STARTUP_AUTO_UPGRADE=0|1
-```
-
-### `scripts/install-fonts-linux.sh`
-
-Installs fonts listed in `fonts/manifest.json` into `~/.local/share/fonts`, then runs `fc-cache`.
+Installs fonts listed in `fonts/manifest.json` into `~/.local/share/fonts/NerdFonts/`, then runs `fc-cache`.
 
 ### `scripts/win/install-fonts.ps1`
 
@@ -516,6 +504,23 @@ If `zsh` exists, sets it as the login shell via `chsh` (best-effort; safe to fai
 
 WSL niceties: clipboard tool, Git line endings (`core.autocrlf=input`), and optional `win32yank.exe` shim for Neovim clipboard.
 
+### `scripts/install-lazygit.sh`
+
+Installs lazygit from GitHub releases if not already present or below the minimum required version.
+
+### `scripts/startup.sh`
+
+Cached checks/upgrades + `fastfetch`. **Won't block your prompt** in `--auto`.
+
+```
+Usage:
+  startup.sh [--auto]
+
+Env:
+  DOTFILES_STARTUP_INTERVAL_HOURS=24
+  DOTFILES_STARTUP_AUTO_UPGRADE=0|1
+```
+
 ---
 
 ## Host overlays
@@ -533,7 +538,7 @@ Put machine-specific tweaks (aliases, term settings, etc.) into the appropriate 
 * **`nvim` wrong binary** → Ensure `~/.local/bin` is early in `PATH` (set in `.zshrc`).
 * **`mise` not recognized after bootstrap** → Open a new shell (installer adds activation to your `~/.zshrc`) or `source ~/.zshrc`.
 * **`git subtree` missing** → Linux: `sudo apt install git-subtree` (in `packages/apt.txt`). macOS: `brew install git`.
-* **Startup upgrades blocking prompt** → They won’t in `--auto`. To do real upgrades, set `DOTFILES_STARTUP_AUTO_UPGRADE=1`. For immediate full upgrades with prompts, run `~/.dotfiles/scripts/startup.sh` without `--auto`.
+* **Startup upgrades blocking prompt** → They won't in `--auto`. To do real upgrades, set `DOTFILES_STARTUP_AUTO_UPGRADE=1`. For immediate full upgrades with prompts, run `~/.dotfiles/scripts/startup.sh` without `--auto`.
 * **Nightly Neovim download fails** → Check CPU arch handling in `nvim-manager.sh`; open an issue to add your arch if needed.
 
 ---
@@ -541,7 +546,7 @@ Put machine-specific tweaks (aliases, term settings, etc.) into the appropriate 
 ## Contributing / customizing
 
 * Add more stow packages under `stow/<name>/` mirroring `$HOME` paths.
-* Extend `mise-setup-globals.sh` with more `npm:` or `cargo:` globals and tool pins.
+* Extend `stow/mise/.config/mise/config.toml` with more `npm:` or `cargo:` globals and tool pins.
 * Layer host-specific overrides in `stow/hosts/`.
 * Tweak `packages/apt.txt` as you like; keep version-critical stuff out (we use mise for that).
 

@@ -26,4 +26,12 @@ if grep -qi microsoft /proc/version 2>/dev/null && [[ -d "stow/hosts/wsl" ]]; th
   stow -d stow -t "$HOME" hosts/wsl
 fi
 
+# SSH config must be 600 or ssh will refuse to use it
+if [[ -f "$HOME/.ssh/config" ]]; then
+  chmod 600 "$HOME/.ssh/config"
+fi
+if [[ -d "$HOME/.ssh" ]]; then
+  chmod 700 "$HOME/.ssh"
+fi
+
 echo "Stowed packages for $HOSTNAME"

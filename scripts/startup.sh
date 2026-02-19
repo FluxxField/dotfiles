@@ -105,7 +105,7 @@ brew_check_or_upgrade() {
       brew upgrade || true
       print "Homebrew: upgrade completed (manual)"
     fi
-  } else {
+  else
     local count
     count="$(brew outdated --quiet | wc -l | tr -d ' ')"
     print "Homebrew: ${count} package(s) outdated"
