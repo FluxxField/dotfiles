@@ -1,7 +1,5 @@
 build-essential
 htop
-net-tools
-fastfetch
 zsh
 stow
 ripgrep
@@ -14,7 +12,6 @@ unzip
 zip
 make
 python3-pip
-starship
 fonts-powerline
 zoxide
 pandoc
@@ -25,7 +22,16 @@ fontconfig
 xdg-utils
 ghostscript
 texlive-latex-base
+texlive-latex-recommended
+texlive-extra-utils
 gdu
 luarocks
 lua5.4
 imagemagick
+bottom
+cloc
+cmake
+pkg-config
+rsync
+sqlite3
+tmux

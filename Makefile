@@ -6,7 +6,7 @@ HOST := $(shell hostname)
 .PHONY: help bootstrap startup link unlink restow adopt adopt-dry adopt-merge \
         ensure-locale ohmyzsh-install mise-install mise-install-globals \
         nvim-stable nvim-nightly nvim-current nvim-subtree-pull nvim-subtree-push \
-        fonts-linux fonts-windows doctor
+        fonts-linux fonts-windows doctor audit
 
 help:
 	@echo "Targets: bootstrap | link | unlink | restow | adopt | adopt-dry | adopt-merge | ensure-locale | mise-install | mise-install-globals | ohmyzsh-install | nvim-subtree-pull | nvim-subtree-push | nvim-stable | nvim-nightly | nvim-switch-stable | nvim-switch-nightly | fonts-linux | fonts-windows | startup | doctor"
@@ -70,6 +70,9 @@ fonts-linux:
 
 fonts-windows:
 	pwsh -NoProfile -ExecutionPolicy Bypass -File "$$HOME/.dotfiles/scripts/win/install-fonts.ps1"
+
+audit:
+	bash scripts/audit.sh
 
 doctor:
 	@command -v stow      >/dev/null || echo "MISSING: stow"

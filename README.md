@@ -240,6 +240,7 @@ nvim-subtree-push      Push changes in subtree back to upstream
 fonts-linux            Install fonts per manifest on Linux/WSL
 fonts-windows          Install fonts per manifest on Windows
 startup                Run startup checks/upgrades manually
+audit                  Diff dotfiles config vs what's actually installed
 doctor                 Quick tool presence checks
 ```
 
@@ -540,6 +541,17 @@ Put machine-specific tweaks (aliases, term settings, etc.) into the appropriate 
 * **`git subtree` missing** → Linux: `sudo apt install git-subtree` (in `packages/apt.txt`). macOS: `brew install git`.
 * **Startup upgrades blocking prompt** → They won't in `--auto`. To do real upgrades, set `DOTFILES_STARTUP_AUTO_UPGRADE=1`. For immediate full upgrades with prompts, run `~/.dotfiles/scripts/startup.sh` without `--auto`.
 * **Nightly Neovim download fails** → Check CPU arch handling in `nvim-manager.sh`; open an issue to add your arch if needed.
+
+---
+
+## External-repo tools (not in apt.txt)
+
+Some tools require adding a third-party apt repo before install. These are not tracked in `packages/apt.txt` (which only handles standard repos) but are worth installing manually on a new machine:
+
+| Tool | Install |
+|---|---|
+| **gh** (GitHub CLI) | `curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \| sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \| sudo tee /etc/apt/sources.list.d/github-cli.list && sudo apt update && sudo apt install gh` |
+| **docker-ce** | Follow [docs.docker.com/engine/install/ubuntu](https://docs.docker.com/engine/install/ubuntu/) |
 
 ---
 

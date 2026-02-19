@@ -6,10 +6,9 @@ if ! command -v apt >/dev/null; then
 fi
 
 sudo apt update
-xargs -a packages/apt.txt sudo apt install -y
 
-# quality of life
-sudo apt install -y build-essential pkg-config curl git unzip ripgrep fzf fd-find bat
+# Strip comments and blank lines before passing to apt
+grep -v '^\s*#' packages/apt.txt | grep -v '^\s*$' | xargs sudo apt install -y
 
 # Ubuntu aliases
 if command -v batcat >/dev/null && ! command -v bat >/dev/null; then
