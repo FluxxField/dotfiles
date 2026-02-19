@@ -6,7 +6,7 @@ HOST := $(shell hostname)
 .PHONY: help bootstrap startup link unlink restow adopt adopt-dry adopt-merge \
         ensure-locale ohmyzsh-install mise-install mise-install-globals \
         nvim-stable nvim-nightly nvim-current nvim-subtree-pull nvim-subtree-push \
-        fonts-linux fonts-windows doctor audit
+        fonts-linux fonts-windows doctor audit install-stripe install-redis-stack
 
 help:
 	@echo "Targets: bootstrap | link | unlink | restow | adopt | adopt-dry | adopt-merge | ensure-locale | mise-install | mise-install-globals | ohmyzsh-install | nvim-subtree-pull | nvim-subtree-push | nvim-stable | nvim-nightly | nvim-switch-stable | nvim-switch-nightly | fonts-linux | fonts-windows | startup | doctor"
@@ -73,6 +73,12 @@ fonts-windows:
 
 audit:
 	bash scripts/audit.sh
+
+install-stripe:
+	bash scripts/install-stripe.sh
+
+install-redis-stack:
+	bash scripts/install-redis-stack.sh
 
 doctor:
 	@command -v stow      >/dev/null || echo "MISSING: stow"

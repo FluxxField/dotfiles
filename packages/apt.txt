@@ -35,3 +35,8 @@ pkg-config
 rsync
 sqlite3
 tmux
+mysql-client
+mysql-server
+postgresql
+postgresql-contrib
+redis

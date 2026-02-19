@@ -67,6 +67,9 @@ if ! command -v starship >/dev/null; then
   curl -fsSL https://starship.rs/install.sh | bash -s -- -y
 fi
 
+bash scripts/install-stripe.sh || true
+bash scripts/install-redis-stack.sh || true
+
 # 8) Default shell to zsh (if installed)
 bash scripts/set-default-shell-zsh.sh || true
 

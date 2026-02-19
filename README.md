@@ -100,6 +100,12 @@ What it does:
   * `fastfetch` summary on shell start (opt-in auto-upgrades)
   * `zellij` terminal multiplexer (installed via mise, config tracked in `stow/zellij`)
 
+* **Dev services**
+
+  * `mysql-server` + `mysql-client`, `postgresql` + `postgresql-contrib`, `redis`
+  * `redis-stack-server` (RedisJSON, RediSearch, etc.) via Redis apt repo / `make install-redis-stack`
+  * **Stripe CLI** via Stripe apt repo / `make install-stripe`
+
 * **Runtimes & globals (via mise)**
 
   * Toolchains: `rust@latest`, `node@lts`, `go@latest`
@@ -241,6 +247,8 @@ fonts-linux            Install fonts per manifest on Linux/WSL
 fonts-windows          Install fonts per manifest on Windows
 startup                Run startup checks/upgrades manually
 audit                  Diff dotfiles config vs what's actually installed
+install-stripe         Install Stripe CLI (adds Stripe apt repo on Linux)
+install-redis-stack    Install redis-stack-server (adds Redis apt repo on Linux)
 doctor                 Quick tool presence checks
 ```
 
@@ -544,14 +552,21 @@ Put machine-specific tweaks (aliases, term settings, etc.) into the appropriate 
 
 ---
 
-## External-repo tools (not in apt.txt)
+## External-repo tools
 
-Some tools require adding a third-party apt repo before install. These are not tracked in `packages/apt.txt` (which only handles standard repos) but are worth installing manually on a new machine:
+Some tools require adding a third-party apt repo. These have dedicated install scripts wired into `bootstrap.sh`:
+
+| Tool | Script | macOS |
+|---|---|---|
+| **Stripe CLI** | `bash scripts/install-stripe.sh` / `make install-stripe` | `brew install stripe/stripe-cli/stripe` |
+| **redis-stack-server** | `bash scripts/install-redis-stack.sh` / `make install-redis-stack` | `brew install redis-stack` |
+
+The following require external repo setup not yet scripted — install manually on a new machine:
 
 | Tool | Install |
 |---|---|
-| **gh** (GitHub CLI) | `curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \| sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \| sudo tee /etc/apt/sources.list.d/github-cli.list && sudo apt update && sudo apt install gh` |
-| **docker-ce** | Follow [docs.docker.com/engine/install/ubuntu](https://docs.docker.com/engine/install/ubuntu/) |
+| **gh** (GitHub CLI) | [cli.github.com/packages](https://github.com/cli/cli/blob/trunk/docs/install_linux.md) |
+| **docker-ce** | [docs.docker.com/engine/install/ubuntu](https://docs.docker.com/engine/install/ubuntu/) |
 
 ---
 
