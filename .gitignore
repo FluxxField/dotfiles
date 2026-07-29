@@ -1,0 +1,5 @@
+# Worktrees (one per feature branch)
+.worktrees/
+
+# Adoption safety net — snapshots of live files replaced by stow
+.migration_backups/
