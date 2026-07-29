@@ -1,5 +1,13 @@
 # Dotfiles Harness Ownership + Native-Linux Provisioning — Design
 
+> **Revision 2 — 2026-07-29, post-adversarial-review round 1.**
+> Amended to close 10 Critical findings and 19 Important findings from
+> `adversarial-review.md`, plus five user decisions. **Precedence, highest first:**
+> (1) **Section 4 — Review Revisions** (added in this revision), (2) this Design Contract,
+> (3) the verbatim brainstorming prose in Sections 1–3. Where Section 4 contradicts the earlier prose,
+> Section 4 wins — the prose is retained as the historical record of how the design was reached.
+> Ground truth for every factual claim: `codebase-facts.md`.
+
 ## Design Contract
 > Structured digest of the design below. Downstream skills read THIS first; the prose design that
 > follows is the authoritative source if the two ever disagree.
@@ -36,9 +44,12 @@
 | `stow/ssh/.ssh/config` | dotfiles | modify | Correct hardcoded `IdentityFile` (newest live key is `id_rsa`, Nov 2025). |
 | `stow/nvim/.config/nvim` | dotfiles | modify | Subtree pull after pushing live divergence upstream. |
 | `stow/env/.config/dotfiles/env.sh` | dotfiles | modify | Add templated `CC_NTFY_TOPIC`, Tailscale host; commit an `.example` and gitignore the real file. |
-| `.gitignore` | dotfiles | modify | Currently **empty**. Add `.worktrees/`, `.migration_backups/`, and the harness state exclusions. |
-| `README.md` | dotfiles | modify | Fix documented-but-absent `stow/hosts/`; document `PLATFORM`, the harness package, `verify-fresh`. |
-| `~/github/dotfiles` (stale 2022 clone) | — | archive then remove | Push as `archive/2022-pre-rewrite` FIRST — sole surviving copy of pre-rewrite history. |
+| `.gitignore` | dotfiles | modify | **Not empty** (137 B; already has `.worktrees/`, `.migration_backups/`). Add ONLY the harness-state exclusions — and land them in their **own commit, verified, before any harness `git add`** (§4 C6). |
+| `README.md` | dotfiles | modify | Fix documented-but-absent `stow/hosts/`; document `PLATFORM`, the harness package, `verify-fresh`, and the `docker` group trade-off (§4 I8). |
+| `~/github/dotfiles` (stale 2022 clone) | — | archive then remove | Push as `archive/2022-pre-rewrite` FIRST — sole surviving copy of pre-rewrite history. Removal **gated on a verified `ls-remote` SHA match** (§4 C7). |
+| `scripts/audit.sh` | dotfiles | modify | **Was missing from this table.** Reads a single `APT_LIST="$DOTFILES_ROOT/packages/apt.txt"`; must union the three split lists filtered by `$PLATFORM` or it breaks the moment `apt.txt` is deleted (§4 I1). |
+| `scripts/install-env.sh` | dotfiles | create | Copies `*.example` → real file **only when absent**, for `env.sh` and `routes`. Ordered before `stow-all.sh`. Without it a fresh clone has no file for stow to link (§4 C5). |
+| `scripts/claude-path-template.sh` | dotfiles | create | Rewrites absolute `/home/keenan` paths in the versioned harness files to `$HOME`/`${CCA_HOME:-$HOME}` form, and reverses at install time. Required for SC6 (§4 C9). |
 
 **Schema Changes** — `None` (no database in scope)
 
@@ -57,8 +68,43 @@
 
 **Key Decisions**
 
-- D1: Vendor the harness as a `stow/claude` package (Approach A) — matches existing architecture,
-  one repo for a fresh box, and stow tree-folding separates declarations from runtime state for free.
+- D1: Vendor the harness as a `stow/claude` package (Approach A) — matches existing architecture and
+  gives one repo for a fresh box. **Amended (§4 C1): tree-folding does NOT separate declarations from
+  runtime state "for free."** Folding only descends into a target directory that already exists as a
+  real directory; on a fresh box `~/.claude-shared` does not exist, so stow would link the whole tree
+  as a single symlink and every later runtime write would land inside the repo. The separation must be
+  made explicit — see D13.
+- D13: **`stow` invocation for the `claude` package is explicit, not incidental.** `stow-all.sh`
+  pre-creates the real directories that must stay real (`~/.claude-shared/`, `plugins/`,
+  `plugins/{cache,data,marketplaces}/`, `handoffs/`) with `mkdir -p` before stowing, and passes
+  `--no-folding` for the `claude` package. `verify-fresh` asserts this on a container with **no**
+  pre-existing `~/.claude-shared`, and asserts that no path inside the repo working tree was written
+  by a post-stow harness run.
+- D14: **`make doctor` must be able to fail.** It currently emits `MISSING: …` lines but always exits
+  0 and unconditionally prints `doctor done (no output = all present)` — verified live emitting
+  `MISSING: eza` and "all present" together with `$?`=0. `doctor` gains a failure counter and exits
+  non-zero when any check misses; the unconditional success line is removed. Without this, SC2 and
+  D9's "repeatable regression test" pass vacuously.
+- D15: **Absolute-path portability is a build step, not a gitignore rule.** D6 covers only machine-state
+  JSON; it does not touch the 6 `/home/keenan` occurrences in `settings.json`, 4 of 16 hooks, 3 skills,
+  and 1 `local-marketplace` file — all of which the design versions. `scripts/claude-path-template.sh`
+  parameterizes them to `$HOME` / `${CCA_HOME:-$HOME}` (the pattern `shell-integration.sh` already
+  uses). SC6 is scoped to tracked files under `stow/claude/**` plus `stow/env/**`.
+- D16: **Irreversible steps get hard gates, against repo house style.** `bootstrap.sh` is pervasively
+  `|| true`, `doctor` always exits 0, `audit.sh` deliberately drops `-e`. The two irreversible
+  operations must not inherit that: (a) the harness-state `.gitignore` rules land in their own commit
+  and are verified (no never-versioned path stageable) **before** the first harness `git add`;
+  (b) the 2022 clone is removed only after `git ls-remote origin archive/2022-pre-rewrite` returns the
+  expected SHA. Both abort on mismatch — no `|| true`.
+- D17: **Landed as four sequenced units** (user decision), not one change: (1) fork reconciliation +
+  git identity + GPG, (2) `.gitignore` + secret/PII sweep, (3) packages + tool-ownership policy +
+  `audit.sh`, (4) `PLATFORM` + `hosts/` + `verify-fresh` with a failing `doctor`, then (5) harness
+  vendoring. Rationale: unit 1 unblocks every later commit, unit 2 must precede any harness `git add`,
+  and unit 5 depends on 2 and 4. Avoids a stuck half-migrated machine.
+- D18: **WSL support is treated as permanent** (user decision, Q7 unresolved). `win/`, `scripts/win/`,
+  and `hosts/wsl/` stay first-class and maintained; HC1 has no end date. Corollary: because another
+  machine actively pushes to this repo and hooks auto-execute once vendored, hook diffs are reviewed
+  before any `restow` picks them up (§4 I10).
 - D2: `cc-account-switcher` stays its own repo, declared and installed, not vendored — it is a
   maintained tool with `bin/lib/share/tests/docs` and its own `install.sh`, under active development.
 - D3: `nvim` keeps its existing `git subtree` mechanism; only the 17-file drift is reconciled. No
@@ -70,10 +116,24 @@
 - D6: Machine state with absolute `/home/keenan` paths is gitignored and **regenerated** from a
   declarative manifest, not copied.
 - D7: Collapse `~/.claude-accounts/rrp/settings.json` back to a symlink to shared (after merging its
-  2 extra `enabledPlugins` entries into shared) — that single file is the entire cause of
-  cross-profile plugin divergence.
+  extra `enabledPlugins` entries into shared) — that single file is the entire cause of cross-profile
+  plugin divergence. **Amended (§4 C10, user decision): de-duplicate `superpowers` during the merge
+  rather than propagating it.** A naive collapse would enable BOTH `superpowers@claude-plugins-official`
+  and `superpowers@superpowers-marketplace` on BOTH profiles — introducing a duplicate skill source on
+  `kjweb`, which today has none. Keep `superpowers@claude-plugins-official` (user scope, cache under
+  `~/.claude` so it resolves for both profiles); drop `superpowers@superpowers-marketplace`. Safe
+  because both record the identical upstream commit `a98c5dfc9de0df5318f4980d91d24780a566ee60` — the
+  6.1.1-vs-4.2.0 label difference is a marketplace-manifest artefact, not a code difference. So
+  `workflow-navigator@local` is the only entry actually merged into shared.
 - D8: Relocate `local-marketplace/` to the profile-independent `~/.claude-shared/local-marketplace/`
-  and repoint `known_marketplaces.json` — fixes the dangling-under-`kjweb` bug at its root.
+  and repoint the marketplace registration — fixes the dangling-under-`kjweb` bug at its root.
+  **Amended (§4 I5): D8 is realized by the `install-claude-plugins.sh` replay, not by editing a file.**
+  The `~/.claude`-routed path is cached in **two** places — `known_marketplaces.json` (the `local`
+  source + installLocation) and `installed_plugins.json:85,93` (`installPath:
+  /home/keenan/.claude/plugins/cache/local/workflow-navigator/1.0.0`) — and both are in D6's
+  gitignored/regenerated set, so hand-editing one is neither sufficient nor durable. The old
+  `~/.claude-accounts/rrp/local-marketplace/` is removed after the content moves, so no stale duplicate
+  remains for a later `claude plugin marketplace add` to target.
 - D9: Verification is a Docker dry-run (`make verify-fresh`), deliberately scoped to exclude fonts,
   GUI, and dev-service daemons.
 - D10: Remove `asdf` in favour of `mise` — two version managers on one `PATH` is a latent ordering bug.
@@ -85,26 +145,66 @@
 
 **Open Questions / Risks**
 
-- **Q1 (blocking a `git` package decision):** which email is canonical — live `keenanjj13@gmail.com`
-  or repo `keenanjj13@protonmail.com`? And should `defaultBranch` move `master` → `main`?
-- **Q2 (breaks committing if wrong):** GPG signing key `665F3EDCE9AB996D` is declared with
-  `commit.gpgsign=true`. Must be confirmed present in the keyring on the new box or every commit
-  fails. The remote's `gpg-agent.conf` commit is relevant here.
-- **Q3:** `zellij` needs a file-level diff (live vs repo vs remote's newer web layout) — not yet run.
-- **Q4:** Two `superpowers` installs are enabled simultaneously under `rrp` —
-  `official@6.1.1` (user scope) and `superpowers-marketplace@4.2.0` (project-scoped to
-  `roof-report-pro-web`). A duplicate skill source to resolve, not state to faithfully preserve.
-- **Q5:** `~/.aws` and `~/.azure` are symlinks into `/mnt/c/Users/Keenan/` and **will dangle** on
-  native Linux. Their contents must be migrated, not just relinked.
-- **Q6:** `~/.config/nvim`'s committed-vs-uncommitted state was not confirmed (a `git status` probe
-  was denied), so the 17-file divergence may include uncommitted work. Verify before any subtree pull
-  — a pull could otherwise overwrite it.
-- **Q7:** The 9 unpulled remote commits were authored from another machine; whether that machine is
-  still in use affects whether this repo must stay WSL-compatible indefinitely.
-- **R1:** `~/.ssh/` holds four private keys. The `ssh` package must never widen their permissions;
-  `stow-all.sh` already fixes `config` to 600.
-- **R2:** `CC_NTFY_TOPIC` (`rrp-cc-e2608a317ed1`) and the Tailscale IP `100.114.199.90` in `ccz` are
-  addressable endpoints on a repo with a public remote. Templated to gitignored env, per user approval.
+- **Q1 — RESOLVED (user decision).** Canonical identity is **`keenanjj13@gmail.com`**, and
+  `init.defaultBranch = main`. Rationale: gmail is what live `.gitconfig` already uses AND it is the
+  uid on the only GPG key that exists, so `user.email` matches the signing key (what makes GitHub show
+  "Verified"); `main` because `origin`'s default branch is `main` and every repo in play uses
+  `main`/`dev`, so `master` would be actively wrong on new repos.
+- **Q2 — RESOLVED (defect confirmed; direction decided).** `665F3EDCE9AB996D` is **absent** from the
+  keyring. The only secret key is `6C32D9329BDB7DA9` — `rsa3072`, capability `scESC` (sign + certify),
+  **no expiry**, ultimate trust, uid `Keenan Johns (Github Account) <keenanjj13@gmail.com>`.
+  **Decision: repoint `signingkey` to `6C32D9329BDB7DA9` and keep `commit.gpgsign`/`tag.gpgSign` true.**
+  Because `stow-all.sh` stows every package on every run, this must land in unit 1 — otherwise the
+  moment `git` is stowed, every commit and tag on the machine (including this project's own) fails.
+  **One verification the session could not perform:** whether that public key is registered on GitHub
+  (`gh api user/gpg_keys` → 404, token lacks the `admin:gpg_key` scope). Adding a token scope is the
+  user's call, so it is a task, not an assumption: `gh auth refresh -h github.com -s admin:gpg_key &&
+  gh api user/gpg_keys`. If absent, upload it before enabling signing — otherwise commits sign locally
+  but show "Unverified" on GitHub.
+- **Q3 — OPEN, owner assigned.** `zellij` needs a file-level diff (live vs repo vs remote's newer web
+  layout). Not yet run. Resolved during unit 3, before the `zellij` package is stowed; SC4 covers the
+  outcome.
+- **Q4 — RESOLVED, and the original framing undercounted.** There are **three** `superpowers` records,
+  not two, and **two are user-scope**: `claude-plugins-official` user/6.1.1 (path exists),
+  `superpowers-marketplace` project/4.2.0 (path exists), and `superpowers-marketplace` user/6.1.1
+  whose `installPath` (`~/.claude-accounts/.shared-rrp.33991/…`) **no longer exists**. Both marketplace
+  entries record the same upstream commit as the official one, so de-duplication is lossless.
+  Resolution is folded into D7 — no longer deferred.
+- **Q5 — OPEN, out of scope (unchanged).** `~/.aws` and `~/.azure` are symlinks into
+  `/mnt/c/Users/Keenan/` and **will dangle** on native Linux. Contents must be migrated, not relinked.
+  Confirmed still true; the data move remains separate work.
+- **Q6 — RESOLVED (defect confirmed).** `~/.config/nvim` **has uncommitted work**: `lazy-lock.json`,
+  `lua/community.lua`, `lua/consts/language_packs.lua`, and
+  `lua/plugins/{astrocore,astrolsp,autocmds,blink,init}.lua` are all modified against HEAD `0bf7e19`.
+  So the 17-file divergence is not purely committed drift. **A subtree pull before committing these
+  would destroy real work.** Hard precondition added: commit (or explicitly review and discard) the
+  live working tree, push to `astro_config`, and verify clean **before** any `nvim-subtree.sh` operation.
+  Mirrored into the brief as a Hard Constraint (it was stripped in round 1).
+- **Q7 — OPEN; treated as permanent (user decision).** Whether the other machine is still in use is
+  unconfirmed, so WSL support is designed as indefinite — the reversible choice. See D18.
+- **R1 — CORRECTED.** `~/.ssh/` holds **three** private keys (`id_ed25519`, `id_rsa`,
+  `enduring-laptop`), not four, plus a stray `.id_ed25519.pub.swp` (0644, Jan 2022) that should be
+  removed while the directory is being touched. The guardrail is unchanged: never widen key
+  permissions, and never run `--adopt` against the `ssh` package. `stow-all.sh` already chmods
+  `config` to 600 and `~/.ssh` to 700.
+- **R2 — AMENDED; the original mitigation was incomplete.** `CC_NTFY_TOPIC` (`rrp-cc-e2608a317ed1`)
+  and the Tailscale IP `100.114.199.90` are addressable endpoints on a public remote. The round-1
+  plan — "template both into gitignored `env.sh`" — does not actually work for the topic, because the
+  literal lives at `~/.claude-shared/settings.json:3` and `settings.json` is in the **Versioned** list,
+  committed verbatim. See §4 C8 for the corrected mechanism. The Tailscale IP in `ccz` is
+  comment-only, so templating it is straightforward.
+- **R3 — NEW.** The round-1 secret review covered only the two values already known. An independent
+  grep then found `/home/keenan` in 4 hooks, 3 skills, and `settings.json` — items the design had not
+  surfaced. Treated as a canary: **all 47 versioned files** (16 hooks + 17 skills + 10 commands +
+  4 agents) get a dedicated secret/PII sweep (tokens, webhook URLs, other IPs/hostnames) before the
+  first commit, in unit 2.
+- **R4 — NEW.** `installed_plugins.json` is **already 4-of-14 broken**: four records point into
+  `~/.claude-accounts/.shared-rrp.{33991,59780}` directories that do not exist, `workflow-navigator@local`
+  has a duplicate record, and `vercel@claude-plugins-official` + one `frontend-design` record cache
+  under `~/.claude-accounts/rrp` despite being enabled in shared — a second instance of the
+  per-profile-path-for-shared-content bug D8 diagnoses. This strengthens D6 considerably: the state is
+  not merely unportable, it is already partly invalid, so regenerating from
+  `packages/claude-plugins.txt` is the only sound path.
 
 ---
 
@@ -328,3 +428,193 @@ is what catches the failures that matter: the WSL branches, the four third-party
 a box with no login session, and stow conflicts against a pristine `$HOME`. Scoped deliberately
 narrow — no fonts, no GUI, no dev-service daemons; those are VM concerns and re-testing them in a
 container mostly proves Docker works.
+
+---
+
+## Section 4 — Review Revisions (authoritative)
+
+> Added in revision 2 to close `adversarial-review.md` round 1. **This section takes precedence over
+> Sections 1–3 and over the Design Contract wherever they disagree.** Each item names the finding it
+> closes.
+
+### 4.1 The stow contract for `claude` must be explicit (C1)
+
+Approach A's justification was that tree-folding links each entry individually, so machine state stays
+untouched "for free". That is only true when the target directory already exists as a real directory —
+which is the *incidental* current state of this machine, not a property of stow. On a fresh box, and on
+this box after HC7 moves live `~/.claude-shared` into `.migration_backups/`, folding produces a single
+whole-tree symlink and every subsequent runtime write lands inside the dotfiles working tree.
+
+`stow-all.sh` therefore, for the `claude` package only:
+1. `mkdir -p` the directories that must remain real: `~/.claude-shared/`, `~/.claude-shared/plugins/`,
+   `~/.claude-shared/plugins/{cache,data,marketplaces}/`, `~/.claude-shared/handoffs/`.
+2. Stows with `--no-folding` so each versioned entry is linked individually and no parent is ever
+   collapsed.
+
+`verify-fresh` asserts both: run in a container with no pre-existing `~/.claude-shared`, then confirm
+(a) `~/.claude-shared` is a real directory, not a symlink, (b) each versioned entry under it is a
+symlink into the repo, and (c) `git status --porcelain` in the repo is clean after a harness run —
+i.e. runtime state did not land in the working tree.
+
+### 4.2 `doctor` gains real exit semantics (C2)
+
+Current body is 12 × `@command -v X >/dev/null || echo "MISSING: X"` followed by an unconditional
+`@echo "doctor done (no output = all present)"`. It cannot fail; live it printed `MISSING: eza` and
+"all present" in the same run with `$?`=0. Rewrite: accumulate misses, drop the unconditional success
+line, exit 1 if any miss. `verify-fresh` additionally greps the captured output for `MISSING:` as a
+belt-and-braces check, and fails the container run itself. Related: `bootstrap.sh`'s pervasive
+`|| true` means "bootstrap completed" is not evidence — `verify-fresh`'s assertions, not bootstrap's
+exit code, are the acceptance signal.
+
+### 4.3 `.example` files are materialized before stowing (C5)
+
+`env.sh` and `routes` become gitignored-real + committed-`.example`. `stow` links only what physically
+exists in the package directory, so on a fresh clone there is nothing to link — meaning R2's whole
+mitigation (the topic and Tailscale host "templated into `env.sh`") silently never materializes, and
+the startup hook that has never run still never runs. New `scripts/install-env.sh` copies each
+`*.example` to its real path **only when the real file is absent** (never clobbering local edits), and
+`bootstrap.sh` runs it before `stow-all.sh`. `verify-fresh` asserts both real files exist post-run.
+Note `stow/env/.config/dotfiles/env.sh` is **currently tracked**, so the transition includes
+`git rm --cached` — and, because history is public and HC3 forbids force-pushing, the committed
+history of that file must be reviewed for anything sensitive before it is untracked (there is nothing
+sensitive in it today; the check is for the future).
+
+### 4.4 `CC_NTFY_TOPIC` cannot be templated by gitignoring another file (C8)
+
+The topic literal lives at `~/.claude-shared/settings.json:3`, inside the `env` block of a file the
+design commits verbatim. Gitignoring `env.sh` does nothing about it. Mechanism, in preference order:
+1. **Preferred** — confirm whether Claude Code's settings `env` block expands `${CC_NTFY_TOPIC}`. If it
+   does, commit the placeholder and let the value come from the environment via `env.sh`.
+2. **Fallback** — remove the key from the committed `settings.json` entirely and have the notifying
+   hook read `$CC_NTFY_TOPIC` from the environment (`env.sh` already exports into every shell), so the
+   endpoint never appears in tracked content.
+
+Which of the two applies is determined during unit 2 and recorded; it is not left to implementation
+improvisation. HC5 is not satisfied until the literal is absent from every tracked file.
+
+### 4.5 Absolute-path portability needs a mechanism (C9)
+
+Verified violations inside files the design versions: `settings.json` **6** (`Read(//home/keenan/**)`,
+`Read(//home/keenan/github/**)`, `Read(//home/keenan/.claude/**)`, `Edit(//home/keenan/github/**)`,
+`Edit(//home/keenan/.claude/**)`, and `/home/keenan/github` in `additionalDirectories`); **4 of 16
+hooks** (`continuous-learning.sh`, `session-stats.sh`, `wip-snapshot.sh`, `context-pressure.sh`);
+**3 skills**; **1** `local-marketplace` file. These genuinely break under a different `$HOME`, so this
+is a portability defect, not only an SC6 wording problem.
+
+`scripts/claude-path-template.sh` parameterizes them following the pattern `shell-integration.sh`
+already demonstrates (`"${CCA_HOME:-$HOME}/.claude-accounts"`): shell files use `$HOME` /
+`${CCA_HOME:-$HOME}` directly; `settings.json` permission globs and `additionalDirectories` need the
+same treatment, subject to 4.4's finding about whether that file supports expansion — if it does not,
+the paths are rewritten at install time by `claude-profile-init.sh` instead of being expanded at read
+time. SC6 is scoped to tracked files under `stow/claude/**` and `stow/env/**`.
+
+### 4.6 Hard gates on the two irreversible operations (C6, C7)
+
+**C6 — credentials into public history.** Ordering is now mandatory, not implied:
+1. Commit the harness-state `.gitignore` additions **alone**.
+2. Verify: no path in the never-versioned set (`.credentials.json`, `.claude.json`, `history.jsonl`,
+   `projects/`, `sessions/`, `todos/`, `shell-snapshots/`, `stats/`, `debug/`, `plugins/{cache,data,marketplaces}/`,
+   `installed_plugins.json`, `known_marketplaces.json`, `plugin-catalog-cache.json`, `blocklist.json`,
+   `handoffs/`, `settings.json.bak*`, `routes`) appears as stageable — `git status --porcelain` plus an
+   explicit `git check-ignore` assertion per entry.
+3. Only then `git add` the harness package. Never `git add -A` while staging it.
+
+`.gitignore` does not retroactively remove anything, and HC3 forbids the force-push that would — so
+this is a one-way door.
+
+**C7 — the 2022 archive.** Between push and removal, assert
+`git ls-remote origin refs/heads/archive/2022-pre-rewrite` returns the expected SHA (equivalently,
+fetch and `git merge-base --is-ancestor`). Abort on any mismatch. Explicitly **no `|| true`** on this
+step — it is the only genuinely unrecoverable operation in the project, and it currently sits in a
+repo whose scripts swallow failures by convention.
+
+### 4.7 `PLATFORM` replaces WSL sniffing rather than joining it (I4, M7)
+
+`stow-all.sh` today keys overlays off `hostname` plus **its own** inline
+`grep -qi microsoft /proc/version` — a second, independent copy of the detection already in
+`detect-os.sh` — applies the hostname overlay unconditionally, and has **no `linux` branch at all**.
+So "overlay `hosts/` by `PLATFORM`" is net-new logic, not a substitution. `stow-all.sh` sources
+`detect-os.sh` and branches solely on `$PLATFORM`, with the inline grep deleted so exactly one
+WSL-detection implementation exists. `bootstrap.sh`'s remaining `WSL`-keyed branches (the `pwsh.exe`
+font install, `wsl-post.sh`) convert to `$PLATFORM` as well; `OS`/`WSL` remain exported but are
+documented as derived low-level facts, with `PLATFORM` the only thing overlay selection consults.
+Caveat: `detect-os.sh` carries `set -euo pipefail` and is `source`d, leaking those options into
+callers — adding `PLATFORM` must not make that worse.
+
+### 4.8 Tool ownership is a policy, not a per-entry judgement call (I3, I2)
+
+The round-1 mise plan ("install it or delete it") assumes a two-way apt/mise world. Verified reality is
+three-way: `bottom` is declared in **both** `apt.txt` and mise and is absent from PATH; `zellij` is
+declared in mise but installed at `~/.cargo/bin/zellij`; `eza` is declared in mise **and** checked by
+`doctor` while only the predecessor `exa` exists (also cargo-direct); `just` is declared and absent.
+That is the same PATH-precedence bug class D10 removes one layer up.
+
+Policy: **mise owns language runtimes and language-ecosystem CLI tools** (`cargo:*`, `npm:*`, go, node,
+rust); **apt owns system packages only**; **no direct `cargo install`** — existing cargo-direct
+binaries (`exa`, `zellij`) are removed and re-provisioned through the owning manager, and `eza`
+replaces `exa` so `doctor`'s check is meaningful. `bottom` is removed from whichever list does not own
+it. `audit.sh` is extended to all four of its report classes and SC3 requires all four clean.
+
+### 4.9 Post-merge reconciliation against the overlay design (I15)
+
+Four of the nine remote-only commits — `a48b128` zsh ssh-agent, `b2e95f8` `gpg-agent.conf`, `14b692a`
+nvim `win32yank`, `226010f`/`ec0fa88` env WINUSER→WINUSR — touch exactly the files Layer 2/3 then
+rewrites. After Task 0, explicitly re-diff `zsh`, `env`, and `nvim` against the planned `hosts/wsl/`
+overlay and the `env.sh` template before building them, so merged WSL-era logic is neither silently
+dropped nor duplicated into both a shared file and an overlay. `b2e95f8` (`gpg-agent.conf`) is also
+directly relevant to Q2 and is reviewed as part of unit 1.
+
+### 4.10 Remaining Important items folded in
+
+- **I1** `scripts/audit.sh` added to Files-Touched — must union the three split lists per `$PLATFORM`
+  or it breaks when `apt.txt` is deleted.
+- **I6** `keybindings.json` is classified explicitly. It is in cca's `SHARED_ITEMS`,
+  `~/.claude-accounts/rrp/keybindings.json` points at it, and `~/.claude-shared/keybindings.json`
+  **does not exist** — an already-dangling shared symlink. It joins the versioned list (as a default
+  file if there is no content to preserve), because leaving it unclassified reproduces exactly the
+  blind-spot bug `cca-lib.sh`'s own comment documents.
+- **I7** `install-gh.sh` / `install-docker.sh` pin GPG key fingerprints to known-good values and use
+  `signed-by` keyring files — never deprecated `apt-key add`. The retained
+  `curl -fsSL https://starship.rs/install.sh | bash` in `bootstrap.sh` is noted as an inherited,
+  unaddressed risk rather than silently accepted.
+- **I8** README documents that `install-docker.sh` grants root-equivalent access via the `docker`
+  group (bind-mount the host filesystem as root) as an accepted trade-off — SC7 requires the README
+  describe what actually happens.
+- **I9** `.migration_backups/` is the sole rollback path for up to 9 package migrations and is
+  gitignored, hence machine-local and never pushed. It may be deleted only after `verify-fresh` passes
+  **and** explicit user confirmation; a one-time off-machine copy is taken before the first package is
+  replaced.
+- **I10** Vendored `hooks/` auto-execute on session events, a second machine actively pushes to this
+  repo, and Q7 is unresolved — so `git pull` becomes "accept new auto-executing code". Hook diffs are
+  reviewed before any `restow` picks them up. (Commit signing, the mechanism that would help here, is
+  only restored by Q2's fix.)
+- **I11** `install-cc-switcher.sh` pins `cc-account-switcher` to a tag/commit, bumped deliberately, so
+  `verify-fresh` is reproducible per D9 and upstream `main` cannot silently change provisioning. An SC
+  verifies the switcher actually installs.
+- **I13** `~/.ssh/config` joins SC4's enumerated list, and `IdentityFile` is asserted to resolve to the
+  intended key — the repo template hardcodes `id_ed25519` (Jan 2022) while the newest key is `id_rsa`
+  (Nov 2025). Note live `~/.ssh/config` does not exist at all, so this is a pure install, and
+  `~/.gitignore_global` likewise does not exist live while `stow/git/.gitignore_global` does.
+- **I14** The hostname-keyed overlay `stow/hosts/$(hostname)/` is keyed to the current WSL box. Whether
+  the native-Linux target shares this hostname is unresolved; until it is, `@common` + `linux` must
+  carry everything functionally required, and a hostname overlay is treated as convenience only.
+- **I18** `accounts.json` carries `keenan@kjweb.dev` and is versioned. Low sensitivity (own domain;
+  commit authorship already exposes an email) — accepted explicitly rather than by omission.
+
+### 4.11 Factual corrections to Sections 1–3
+
+- `.gitignore` is **not empty** (137 B) — `.worktrees/` and `.migration_backups/` already exist; only
+  the harness-state rules are new.
+- `~/.ssh` holds **three** private keys, not four (R1).
+- **D10 is partially stale:** `asdf` is already off PATH; only a leftover `~/.asdf` directory remains,
+  so the PATH-ordering bug cited is not currently live.
+- The remote no longer has only `main` — `feat/harness-linux-migration` is already pushed. D11 remains
+  purely additive.
+- mise declares **8** uninstalled tools, not 7.
+- The two root commits in `~/.dotfiles` (`d3bb970` "Initial commit", LICENSE only; `136f68a`
+  "Squashed 'stow/nvim/.config/nvim/' content from commit 00b1f34") are **benign** — the second is the
+  ordinary `git subtree add --squash` root. No `.git/shallow`, no `.git/info/grafts`, no replace refs.
+  Task 0's plain `git merge origin/main` is unaffected and SC1 is not at risk from this.
+- The symlink chain `~/.claude` → `~/.claude-accounts/<profile>` → `~/.claude-shared/*` is
+  single-user-owned throughout; no privilege boundary is crossed. D8 is a correctness fix, not a
+  security fix.
