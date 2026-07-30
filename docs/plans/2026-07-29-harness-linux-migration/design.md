@@ -1010,3 +1010,49 @@ be treated as disclosed network topology.
 `SWEEP_EXEMPT` list in the `Makefile`, never by value. The run always prints how many matches it
 exempted, so a growing exemption count is visible rather than silent. **The sweep must be run against
 the planning artifacts, not only against the code** — that is the specific gap this defect exposed.
+
+---
+
+### 4.21 §4.9's post-merge re-diff, executed — and `--adopt` on `zsh` would discard the merge
+
+§4.9 requires a re-diff of `zsh`/`env`/`nvim` *after* the merge. The merge landed (`b70dd78`), so this
+is that re-diff. None of the four merged config files is stowed yet; all four are real files that
+diverge from the repo:
+
+| Package file | Lines only in repo | Lines only in live |
+|---|---|---|
+| `stow/zsh/.zshrc` | **44** | 113 |
+| `stow/mise/.config/mise/config.toml` | 14 | 0 |
+| `stow/zellij/.config/zellij/layouts/web.kdl` | 7 | 5 |
+| `stow/nvim/.config/nvim/lua/plugins/astrocore.lua` | 3 | 2 |
+
+**The finding: `stow --adopt` on the `zsh` package would silently revert the merge.**
+
+`--adopt` replaces the *repo* file with the *live* file. `stow/zsh/.zshrc` is one of the six files
+`origin/main` just brought in, and its five substantive new lines were checked individually against the
+live `~/.zshrc` — **all five are absent**:
+
+```
+# SSH
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+# GPG
+gpgconf --launch gpg-agent
+```
+
+So adopting `zsh` would discard 44 repo-only lines including everything unit 1's merge just recovered —
+and `gpgconf --launch gpg-agent` is part of the §4.19 signing fix. SC1 would still pass: it checks
+commit *ancestry*, not content, exactly as §4.17 warned ("SC1's ancestry check protects commits, not
+content"). The loss would be invisible to every existing gate.
+
+**Consequences for unit 3.5.** The never-`--adopt` list is no longer just `ssh` (HC8) and `gnupg`
+(§4.19). Reconciling `zsh` must be a **union merge**, hand-resolved, never `--adopt`. `mise` is the
+opposite and safe: 14 repo-only lines and **0** live-only, so the repo is a strict superset and plain
+stow is correct. `zellij` and `nvim` are small two-way diffs needing the same union treatment as `zsh`,
+just far less of it.
+
+**Note the ssh-agent defect rides along.** `eval "$(ssh-agent -s)"` in `.zshrc` spawns a *new* agent on
+every shell (the `a48b128` defect §4.19 records). It is currently absent from live and present only in
+the repo. Unit 3.5 should fix it while doing the union merge rather than faithfully propagating it —
+but it must be a deliberate edit, recorded, not a silent drop that looks identical to the `--adopt`
+data loss described above.
