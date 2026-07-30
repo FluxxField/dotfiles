@@ -1,7 +1,7 @@
 [user]
 	name = Keenan Johns
-	email = keenanjj13@protonmail.com
-	signingkey = 665F3EDCE9AB996D
+	email = keenanjj13@gmail.com
+	signingkey = 6C32D9329BDB7DA9
 
 [commit]
 	gpgsign = true
@@ -28,3 +28,11 @@
 
 [diff]
 	tool = nvimdiff
+
+[credential "https://github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
+
+[credential "https://gist.github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
