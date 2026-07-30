@@ -194,7 +194,7 @@
   permissions, and never run `--adopt` against the `ssh` package. `stow-all.sh` already chmods
   `config` to 600 and `~/.ssh` to 700.
 - **R2 — AMENDED; the original mitigation was incomplete.** `CC_NTFY_TOPIC` (`rrp-cc-<REDACTED>`)
-  and the Tailscale IP `100.114.199.<REDACTED>` are addressable endpoints on a public remote. The round-1
+  and the Tailscale IP `<TAILSCALE-IP-REDACTED>` are addressable endpoints on a public remote. The round-1
   plan — "template both into gitignored `env.sh`" — does not actually work for the topic, because the
   literal lives at `~/.claude-shared/settings.json:3` and `settings.json` is in the **Versioned** list,
   committed verbatim. See §4 C8 for the corrected mechanism. The Tailscale IP in `ccz` is
@@ -377,7 +377,7 @@ symlink skeleton by delegating to `cca` — so provisioning a profile on the new
 and the switcher stays its own repo.
 
 **Endpoint handling (user-approved):** `CC_NTFY_TOPIC` in `settings.json` is `rrp-cc-<REDACTED>`,
-and `ccz` has the Tailscale IP `100.114.199.<REDACTED>` hardcoded. Neither is a credential, but both are
+and `ccz` has the Tailscale IP `<TAILSCALE-IP-REDACTED>` hardcoded. Neither is a credential, but both are
 addressable endpoints — anyone with the topic can push notifications to the phone. Both are templated
 into `stow/env/.config/dotfiles/env.sh` (gitignored, with a committed `.example`) rather than
 committed, since the remote is public.
@@ -992,7 +992,7 @@ adversarial review read those documents and none flagged it, because every revie
 | Present on `origin/main` | No |
 | Remediable by rewriting history | **No.** HC3 forbids force-push, and the branch is public |
 
-**What was done:** both literals are redacted to `rrp-cc-<REDACTED>` / `100.114.199.<REDACTED>` in all
+**What was done:** both literals are redacted to `rrp-cc-<REDACTED>` / `<TAILSCALE-IP-REDACTED>` in all
 eight documents, and the test fixtures were changed to obviously-fake values (a `fake`-infixed topic and
 a `.99` host octet — not quoted here, because quoting them would trip the scanner in this very file,
 which is the behaviour we want). This stops the leak compounding; it does **not** unpublish it.

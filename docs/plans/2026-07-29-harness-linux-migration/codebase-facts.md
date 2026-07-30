@@ -246,8 +246,8 @@ scripted — install manually on a new machine:". Both CONFIRMED.
 `env.sh.example` in the repo.
 `stow/bin/.local/bin/nvimx` is the only file in `stow/bin`.
 
-`~/.local/bin/ccz` (untracked, `#!/usr/bin/env zsh`) — the Tailscale IP `100.114.199.<REDACTED>` appears
-**only inside a comment** (`ssh keenan@100.114.199.<REDACTED>  then  zellij attach <name>`); the executable
+`~/.local/bin/ccz` (untracked, `#!/usr/bin/env zsh`) — the Tailscale IP `<TAILSCALE-IP-REDACTED>` appears
+**only inside a comment** (`ssh keenan@<TAILSCALE-IP-REDACTED>  then  zellij attach <name>`); the executable
 logic is `git rev-parse --abbrev-ref HEAD` → `zellij attach --create "$slug"`. R2 CONFIRMED as an
 exposure, with the nuance that it is a comment, not a functional dependency.
 
