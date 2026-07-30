@@ -214,7 +214,7 @@ assert_ok bash "$SWEEP" --worktree
 
 # 2. A planted ntfy topic is caught in the worktree while still UNTRACKED —
 #    the gate must catch content before it is added, which requires --untracked.
-echo 'CC_NTFY_TOPIC=rrp-cc-e2608a317ed1' > leak.txt
+echo 'CC_NTFY_TOPIC=rrp-cc-000000fake01' > leak.txt
 assert_fail bash "$SWEEP" --worktree
 
 # 2b. ...but a gitignored file is NOT scanned. Correctly-ignored machine state
@@ -224,7 +224,7 @@ echo 'rrp-cc-deadbeef99' > secret.log
 rm leak.txt
 assert_ok bash "$SWEEP" --worktree
 rm secret.log .gitignore
-echo 'CC_NTFY_TOPIC=rrp-cc-e2608a317ed1' > leak.txt
+echo 'CC_NTFY_TOPIC=rrp-cc-000000fake01' > leak.txt
 
 # 3. ...and caught in a revision range once committed.
 git add -A && git commit -qm "leak"
@@ -252,7 +252,7 @@ rm acct.txt
 # 5. Each individual pattern class is detected — not just the first one.
 for bad in 'ghp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
            'sk-ant-api03-xxxxxxxx' \
-           '100.114.199.90' \
+           '100.114.199.99' \
            '-----BEGIN OPENSSH PRIVATE KEY-----' \
            'https://hooks.slack.com/services/T0/B0/xxxx'; do
   rm -f acct.txt; printf '%s\n' "$bad" > probe.txt

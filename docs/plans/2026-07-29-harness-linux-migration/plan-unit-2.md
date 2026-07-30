@@ -38,7 +38,7 @@ different and unit 5 cannot start without knowing which applies.
 - `~/.claude-shared` has exactly 15 entries. `handoffs/` is **empty**. `plugins/.last_inuse_sweep` is a
   one-line ISO timestamp rewritten every session.
 - **Both** `settings.json.bak-20260723-103211` and `settings.json.bak2-105016` contain the
-  `CC_NTFY_TOPIC` literal `rrp-cc-e2608a317ed1`.
+  `CC_NTFY_TOPIC` literal `rrp-cc-<REDACTED>`.
 - `settings.json` line 3 carries that literal inside its `env` block. **No `${VAR}` appears anywhere** in
   `settings.json` or `settings.local.json` — there is no in-repo precedent either way.
 

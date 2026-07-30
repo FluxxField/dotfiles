@@ -376,7 +376,7 @@ supported (`adopt-existing.sh:65` already asserts this). No stow upgrade needed.
 ### O. 🟡 `settings.json` has no `${VAR}` precedent to reason from
 
 `grep '\${' ~/.claude-shared/settings.json ~/.claude-shared/settings.local.json` → **no matches
-anywhere**. Every value is a literal (`"CC_NTFY_TOPIC": "rrp-cc-e2608a317ed1"`,
+anywhere**. Every value is a literal (`"CC_NTFY_TOPIC": "rrp-cc-<REDACTED>"`,
 `"CLAUDE_CODE_DISABLE_1M_CONTEXT": "0"`, `"CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"`). So §4.4/§4.5's
 expansion question has **no in-repo evidence either way** and must be settled empirically in unit 2,
 exactly as the brief requires. The scan deliberately did not test it live (it would mean editing active
@@ -388,7 +388,7 @@ settings).
 - **`plugins/.last_inuse_sweep`** is a single-line ISO timestamp (`2026-07-29T21:43:43.572Z`),
   rewritten continuously (mtime today 14:43) — confirms §4.17's gitignore call; it would otherwise
   dirty the tree on every session.
-- **HC4's `.bak` claim CONFIRMED:** `grep -c rrp-cc-e2608a317ed1` → `settings.json:1`,
+- **HC4's `.bak` claim CONFIRMED:** `grep -c rrp-cc-<REDACTED>` → `settings.json:1`,
   `settings.json.bak-20260723-103211:1`, `settings.json.bak2-105016:1`. Both backups carry the topic.
 - **The 2022 clone is ready for C7:** `~/github/dotfiles` HEAD `e4a76dc571d9710471ac9c4ec77173f869fdc91f`,
   on `main`, **working tree clean**, `origin` → the same `FluxxField/dotfiles`, with

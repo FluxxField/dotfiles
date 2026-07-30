@@ -33,7 +33,7 @@
    the force-push that would, so this ordering is a one-way door.
    *(Revised: round 3 found this list was a strict subset of the design's, and the omission was not
    harmless — **both `settings.json.bak*` files were verified to contain the `CC_NTFY_TOPIC` literal
-   `rrp-cc-e2608a317ed1`** that HC5 exists to keep out of tracked content, plus 20 and 6 hardcoded
+   `rrp-cc-<REDACTED>`** that HC5 exists to keep out of tracked content, plus 20 and 6 hardcoded
    `/home/keenan` paths. `.last_inuse_sweep` and the `workflow-navigator.bak` directory were classified
    as neither versioned nor ignored — the same gap that let `keybindings.json` through. The assertion
    script generates its coverage from a scan of the live tree and fails on any entry classified as
@@ -267,3 +267,14 @@ unit 2 must precede any harness `git add`, and unit 5 depends on 2 and 4:
     `claude plugin install` has **no** version-pin flag, so the manifest replay always resolves
     marketplace-latest. *(Round 3 found the CLI was never provisioned anywhere while steps 3–4 depend on
     it; round 4 chose the installer over the Non-Goal.)*
+18. **NEW (round 5) — HC5 applies to the planning artifacts, not only to the shipped config.**
+    `make sweep-secrets` passes over the **whole worktree including `docs/`**, with fixture-bearing paths
+    exempted **by path** (an explicit `SWEEP_EXEMPT` list in the `Makefile`), never by value, and the run
+    always discloses how many matches it exempted.
+    *(Round 5 Critical: the first real run returned 36 hits. The real `CC_NTFY_TOPIC` and the real
+    Tailscale IP were quoted verbatim in eight tracked planning documents — already pushed to the public
+    remote at `614e0c2`. HC5 forbids exactly this, and §4.6 designs an elaborate scheme to keep the same
+    topic out of `settings.json`; three rounds of adversarial review checked the designed artifact
+    against HC5 and never pointed HC5 at the design. The literals are now redacted, but HC3 forbids the
+    force-push that would scrub history, so **rotating `CC_NTFY_TOPIC` is the only real mitigation and is
+    the user's call** — see §4.20.)*

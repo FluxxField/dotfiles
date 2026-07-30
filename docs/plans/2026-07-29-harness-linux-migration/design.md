@@ -193,8 +193,8 @@
   removed while the directory is being touched. The guardrail is unchanged: never widen key
   permissions, and never run `--adopt` against the `ssh` package. `stow-all.sh` already chmods
   `config` to 600 and `~/.ssh` to 700.
-- **R2 — AMENDED; the original mitigation was incomplete.** `CC_NTFY_TOPIC` (`rrp-cc-e2608a317ed1`)
-  and the Tailscale IP `100.114.199.90` are addressable endpoints on a public remote. The round-1
+- **R2 — AMENDED; the original mitigation was incomplete.** `CC_NTFY_TOPIC` (`rrp-cc-<REDACTED>`)
+  and the Tailscale IP `100.114.199.<REDACTED>` are addressable endpoints on a public remote. The round-1
   plan — "template both into gitignored `env.sh`" — does not actually work for the topic, because the
   literal lives at `~/.claude-shared/settings.json:3` and `settings.json` is in the **Versioned** list,
   committed verbatim. See §4 C8 for the corrected mechanism. The Tailscale IP in `ccz` is
@@ -376,8 +376,8 @@ repo owns `~/.claude-shared` plus a `scripts/claude-profile-init.sh` that create
 symlink skeleton by delegating to `cca` — so provisioning a profile on the new box is one command,
 and the switcher stays its own repo.
 
-**Endpoint handling (user-approved):** `CC_NTFY_TOPIC` in `settings.json` is `rrp-cc-e2608a317ed1`,
-and `ccz` has the Tailscale IP `100.114.199.90` hardcoded. Neither is a credential, but both are
+**Endpoint handling (user-approved):** `CC_NTFY_TOPIC` in `settings.json` is `rrp-cc-<REDACTED>`,
+and `ccz` has the Tailscale IP `100.114.199.<REDACTED>` hardcoded. Neither is a credential, but both are
 addressable endpoints — anyone with the topic can push notifications to the phone. Both are templated
 into `stow/env/.config/dotfiles/env.sh` (gitignored, with a committed `.example`) rather than
 committed, since the remote is public.
@@ -966,3 +966,47 @@ non-interactive shell hangs — the same failure class as the GPG issue above, a
 - The symlink chain `~/.claude` → `~/.claude-accounts/<profile>` → `~/.claude-shared/*` is
   single-user-owned throughout; no privilege boundary is crossed. D8 is a correctness fix, not a
   security fix.
+
+---
+
+### 4.20 HC5 is already violated by the planning artifacts themselves (found 2026-07-29, round 5)
+
+**This supersedes nothing in §4.1–§4.19; it adds a defect those rounds missed.**
+
+The first real run of `scripts/sweep-secrets.sh --worktree` against this repo returned **36 hits**.
+After discounting the deliberate test fixtures, the residue was the **real** `CC_NTFY_TOPIC` value and
+the **real** Tailscale IP, quoted verbatim across eight tracked planning documents: `adversarial-review.md`,
+`brief.md`, `codebase-facts.md`, `codebase-scan.md`, `design.md`, `plan-unit-1.md`, `plan-unit-2.md`.
+
+The irony is the point: HC5 says *"no addressable endpoints in any tracked file"*, and §4.6 designs a
+careful `${VAR}`-expansion scheme to keep the topic out of `settings.json` — while the documents
+*describing* that scheme published the literal value to the same public remote. Three rounds of
+adversarial review read those documents and none flagged it, because every reviewer was checking the
+*designed artifact* against HC5 and nobody pointed HC5 at the *design*.
+
+**Status of the exposure — this is a one-way door, and it is already through it.**
+
+| | |
+|---|---|
+| Present on `origin/feat/harness-linux-migration` | **Yes** — pushed at `614e0c2`, before this session |
+| Present on `origin/main` | No |
+| Remediable by rewriting history | **No.** HC3 forbids force-push, and the branch is public |
+
+**What was done:** both literals are redacted to `rrp-cc-<REDACTED>` / `100.114.199.<REDACTED>` in all
+eight documents, and the test fixtures were changed to obviously-fake values (a `fake`-infixed topic and
+a `.99` host octet — not quoted here, because quoting them would trip the scanner in this very file,
+which is the behaviour we want). This stops the leak compounding; it does **not** unpublish it.
+
+**What is left for the user — the only real mitigation is rotation.** An ntfy topic is a bearer
+credential in effect: anyone holding the string can publish notifications to the phone, and can
+subscribe to read them. It is public, permanently, on a public remote. **Rotate `CC_NTFY_TOPIC` to a
+fresh random value.** That is cheap (one `settings.json`-side value plus the phone subscription) and it
+is the only action that actually revokes what was disclosed. The Tailscale IP is lower severity — it is
+RFC-6598 CGNAT space, only reachable inside the tailnet, and is authenticated separately — but it should
+be treated as disclosed network topology.
+
+**Process change so this cannot recur:** `make sweep-secrets` runs over the whole worktree including
+`docs/`, and the two fixture-bearing paths are exempted **by path** in an explicitly-labelled
+`SWEEP_EXEMPT` list in the `Makefile`, never by value. The run always prints how many matches it
+exempted, so a growing exemption count is visible rather than silent. **The sweep must be run against
+the planning artifacts, not only against the code** — that is the specific gap this defect exposed.

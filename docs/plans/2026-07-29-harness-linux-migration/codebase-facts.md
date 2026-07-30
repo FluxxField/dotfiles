@@ -246,8 +246,8 @@ scripted — install manually on a new machine:". Both CONFIRMED.
 `env.sh.example` in the repo.
 `stow/bin/.local/bin/nvimx` is the only file in `stow/bin`.
 
-`~/.local/bin/ccz` (untracked, `#!/usr/bin/env zsh`) — the Tailscale IP `100.114.199.90` appears
-**only inside a comment** (`ssh keenan@100.114.199.90  then  zellij attach <name>`); the executable
+`~/.local/bin/ccz` (untracked, `#!/usr/bin/env zsh`) — the Tailscale IP `100.114.199.<REDACTED>` appears
+**only inside a comment** (`ssh keenan@100.114.199.<REDACTED>  then  zellij attach <name>`); the executable
 logic is `git rev-parse --abbrev-ref HEAD` → `zellij attach --create "$slug"`. R2 CONFIRMED as an
 exposure, with the nuance that it is a comment, not a functional dependency.
 
@@ -377,7 +377,7 @@ D6 gitignores only the *machine-state JSON* (`installed_plugins.json`, `known_ma
 
 `shell-integration.sh` is already portable — it uses `"${CCA_HOME:-$HOME}/.claude-accounts"`.
 
-`CC_NTFY_TOPIC` confirmed at `~/.claude-shared/settings.json:3` = `rrp-cc-e2608a317ed1`, inside the
+`CC_NTFY_TOPIC` confirmed at `~/.claude-shared/settings.json:3` = `rrp-cc-<REDACTED>`, inside the
 `env` block of a file the design versions.
 
 ### **NEW (round-1 follow-up) — `installed_plugins.json` is already 4/14 broken**
