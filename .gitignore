@@ -3,3 +3,51 @@
 
 # Adoption safety net — snapshots of live files replaced by stow
 .migration_backups/
+
+# ── Claude Code harness state ───────────────────────────────────────────────
+# Classification lives in packages/harness-manifest.txt; scripts/assert-gitignore-safe.sh
+# asserts these rules match it. The remote is PUBLIC and .gitignore does not
+# remove anything retroactively, so these rules land BEFORE the harness is
+# staged (C6/HC4) — this ordering is a one-way door.
+
+# Regenerable plugin state — rebuilt from packages/claude-plugins.txt (D6/HC6).
+# Already 4-of-14 broken today: four records point into ~/.claude-accounts/.shared-rrp.*
+# directories that no longer exist.
+#
+# The whole plugins/ subtree is ignored: nothing under it is versioned, and §4.1
+# requires it stay a REAL directory created by stow-all.sh, not a repo-backed
+# symlink. The specific rules that follow are redundant under this one and kept
+# only as documentation of what lives there.
+stow/claude/.claude-shared/plugins/
+stow/claude/.claude-shared/plugins/cache/
+stow/claude/.claude-shared/plugins/data/
+stow/claude/.claude-shared/plugins/marketplaces/
+stow/claude/.claude-shared/plugins/installed_plugins.json
+stow/claude/.claude-shared/plugins/known_marketplaces.json
+stow/claude/.claude-shared/plugins/plugin-catalog-cache.json
+stow/claude/.claude-shared/plugins/blocklist.json
+stow/claude/.claude-shared/plugins/.last_inuse_sweep
+stow/claude/.claude-shared/plugins/workflow-navigator
+stow/claude/.claude-shared/plugins/workflow-navigator.bak-20260724/
+
+# Machine-local runtime state.
+stow/claude/.claude-shared/handoffs/
+# routes maps absolute project paths to accounts — machine-local by nature (D12).
+# routes.example is tracked; the real file is not.
+stow/claude/.claude-shared/routes
+# Both .bak files contain the CC_NTFY_TOPIC literal HC5 exists to keep out.
+stow/claude/.claude-shared/settings.json.bak*
+
+# Never versioned under any circumstance (HC4).
+stow/claude/.claude-shared/.credentials.json
+stow/claude/.claude-shared/.claude.json
+stow/claude/.claude-shared/history.jsonl
+stow/claude/.claude-shared/projects/
+stow/claude/.claude-shared/sessions/
+stow/claude/.claude-shared/todos/
+stow/claude/.claude-shared/shell-snapshots/
+stow/claude/.claude-shared/stats/
+stow/claude/.claude-shared/debug/
+
+# Machine-local env / settings materialized from .example by install-env.sh (§4.3).
+stow/env/.config/dotfiles/env.sh
