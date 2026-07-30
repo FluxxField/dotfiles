@@ -118,6 +118,21 @@
 - **Superpowers:** keep `superpowers@claude-plugins-official`, drop `superpowers@superpowers-marketplace`.
 - **WSL horizon:** permanent (Q7 unresolved; the reversible choice).
 - **Delivery:** five sequenced units — see below.
+- **`cc-account-switcher` is published PRIVATE** *(NEW — round 4, after codebase-scan found it had no
+  remote and no tags at all, which blocked HC9/I11/SC10)*: `github.com/FluxxField/cc-account-switcher`,
+  default branch `main`, **pin target tag `v0.1.0` = `0e66044`**. Swept before publishing: no
+  credentials or tokens in any of the 27 commits, but two business emails plus client names
+  (`roofco`, `roof-report-pro`) across 9 files — hence private, which is also the reversible direction.
+  **Consequence:** a private remote cannot be cloned anonymously, so `verify-fresh` must supply the
+  switcher from the host (a `git bundle` of the pinned tag, or a read-only bind-mount) via a
+  `CCA_SOURCE` parameter. **No token may enter the build context or an image layer** — the same rule
+  §4.17 applies to the GPG key.
+- **The Claude Code CLI gets an installer, not a Non-Goal** *(NEW — round 4, closing §4.17)*:
+  `scripts/install-claude-cli.sh`, already written and verified on the branch. Version-pinnable via
+  `CLAUDE_CLI_VERSION` (`stable|latest|X.Y.Z`), so `verify-fresh` can pin for D9/I11 reproducibility.
+  §4.12 steps 3–4 therefore stay unconditional. Wiring into `bootstrap.sh` / `doctor` / README is
+  **deferred to unit 4 under HC2** — `origin/main` has 9 unpulled commits and editing those three files
+  pre-merge manufactures avoidable conflicts; a new file has no conflict surface.
 - **To be decided and RECORDED in unit 2, not improvised:** whether the Claude Code settings
   `env`/permission blocks expand `${VAR}`. If yes, `settings.json` is committed with placeholders and
   stays stow-symlinked. If no, it becomes gitignored-real + a tracked `settings.json.example`,
@@ -200,10 +215,14 @@ unit 2 must precede any harness `git add`, and unit 5 depends on 2 and 4:
    removed.
 9. **NEW.** A test commit and a test tag succeed after the `git` package is stowed. *(Round 1: nothing
    would otherwise have caught HC12's failure until the next commit — potentially the migration's own.)*
-10. **NEW.** `scripts/install-cc-switcher.sh` installs the pinned `cc-account-switcher` during
-    `verify-fresh`, and `cca doctor` reports no unknown items. *(Round 1: HC9 asserted the switcher is
-    "declared and installed" but nothing verified installation happened or was ordered correctly —
-    `bootstrap.sh` has no such step today.)*
+10. **NEW.** `scripts/install-cc-switcher.sh` installs `cc-account-switcher` **pinned to `v0.1.0`
+    (`0e66044`)** during `verify-fresh`, and `cca doctor` reports no unknown items. Because the remote
+    is **private**, the container is fed the pinned source from the host via `CCA_SOURCE` (bundle or
+    read-only bind-mount) and **no credential appears in the build context or any image layer**; a real
+    fresh box uses the remote URL default. *(Round 1: HC9 asserted the switcher is "declared and
+    installed" but nothing verified installation happened or was ordered correctly — `bootstrap.sh` has
+    no such step today. Round 4: the repo had no remote at all, so this criterion was unsatisfiable as
+    written.)*
 11. **NEW.** `~/.claude-shared` is a real directory (not a symlink) after `stow-all.sh` on a container
     with no pre-existing `~/.claude-shared`, each versioned entry beneath it is a symlink into the repo,
     and `git status --porcelain` is clean after a harness run — i.e. runtime state did not land in the
@@ -237,3 +256,14 @@ unit 2 must precede any harness `git add`, and unit 5 depends on 2 and 4:
 16. **NEW (round 3).** `install-gh.sh` and `install-docker.sh` pin GPG key fingerprints and use
     `signed-by` keyring files — no `apt-key add`. If starship's `curl | bash` is left unhardened, that is
     recorded here as an accepted residual risk rather than an oversight.
+    *(Round 4 refinement: `install-claude-cli.sh` is also `curl | bash`, but it is **not** the same risk
+    class and must not be lumped in — Anthropic's `install.sh` fetches a per-platform manifest, extracts
+    a SHA256, and aborts on mismatch, so the payload is verified and only the script fetch is TLS-only.
+    Starship verifies nothing. The accepted residual risk is starship alone.)*
+17. **NEW (round 4).** The Claude Code CLI is provisioned by `scripts/install-claude-cli.sh` and
+    `make doctor` checks for it — so `verify-fresh` steps 3–4 (`claude-profile-init.sh` and the plugin
+    replay) run against a CLI the repo installed, not one that happened to be present. `verify-fresh`
+    pins `CLAUDE_CLI_VERSION` to a concrete version. Note the asymmetry that cannot be fixed here:
+    `claude plugin install` has **no** version-pin flag, so the manifest replay always resolves
+    marketplace-latest. *(Round 3 found the CLI was never provisioned anywhere while steps 3–4 depend on
+    it; round 4 chose the installer over the Non-Goal.)*

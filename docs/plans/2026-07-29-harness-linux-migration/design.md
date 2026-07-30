@@ -26,7 +26,8 @@
 | `scripts/claude-profile-init.sh` | dotfiles | create | Creates an account's symlink skeleton by delegating to `cca`. |
 | `scripts/install-gh.sh` | dotfiles | create | Third-party apt repo; removes a "install manually" README row. |
 | `scripts/install-docker.sh` | dotfiles | create | Third-party apt repo; removes a "install manually" README row. |
-| `scripts/install-cc-switcher.sh` | dotfiles | create | Clones/updates `cc-account-switcher` and runs its `install.sh`. |
+| `scripts/install-cc-switcher.sh` | dotfiles | create | Clones/updates `cc-account-switcher` and runs its `install.sh`. **Remote now exists** (§4.18): `git@github.com:FluxxField/cc-account-switcher.git`, **private**, pinned to tag `v0.1.0` = `0e66044`. |
+| `scripts/install-claude-cli.sh` | dotfiles | create | **DONE, already on the branch.** Provisions the Claude Code CLI via Anthropic's native installer — closes §4.17's gap. Version-pinnable via `CLAUDE_CLI_VERSION`. |
 | `scripts/detect-os.sh` | dotfiles | modify | Add `PLATFORM` export (`wsl`\|`linux`\|`mac`) alongside existing `OS`/`WSL`. |
 | `scripts/install-apt.sh` | dotfiles | modify | Consume the three split package lists per `PLATFORM`. |
 | `scripts/verify-fresh.sh` | dotfiles | create | Docker dry-run harness (see Verification). |
@@ -634,8 +635,10 @@ username and UID differ from the live machine's** (required — otherwise SC6's 
 different `$HOME`" passes by accident):
 
 1. `bootstrap.sh` — which must itself now invoke, in order: `install-apt.sh` (per-`PLATFORM` lists) →
-   `install-gh.sh` → `install-docker.sh` → `install-cc-switcher.sh` (pinned) → `install-env.sh`
-   (materialize `*.example`) → the existing mise/nvim/starship steps.
+   `install-gh.sh` → `install-docker.sh` → **`install-claude-cli.sh`** (§4.18; must precede the
+   switcher, whose `install.sh` and `cca` wrapper both assume a `claude` binary) →
+   `install-cc-switcher.sh` (pinned to `v0.1.0`; `CCA_SOURCE` = bundle in-container, remote on a real
+   box — §4.18) → `install-env.sh` (materialize `*.example`) → the existing mise/nvim/starship steps.
 2. `stow-all.sh` — including the `mkdir -p` + `--no-folding` handling for the `claude` package (§4.1).
 3. `claude-profile-init.sh` for at least one synthetic profile — must precede the replay, because
    `claude plugin install` writes into the *active* `~/.claude` profile path, so a profile must exist
@@ -792,13 +795,10 @@ machine pushing to this repo.
 
 ### 4.17 Round-3 Important items
 
-- **The `claude` CLI itself is never provisioned.** `install-claude-plugins.sh` and
-  `claude-profile-init.sh` both shell out to `claude` / `cca`, and §4.12 steps 3–4 run them inside a
-  from-scratch `ubuntu:24.04` container — but no apt entry, mise tool, or installer script for the
-  Claude Code CLI appears anywhere in `packages/*`, `bootstrap.sh`, or Files-Touched, and `doctor` does
-  not check for it. Either add an installer (and a `doctor` check) or state as an explicit Non-Goal that
-  the CLI is provisioned by Anthropic's own mechanism and out of scope — in which case §4.12 steps 3–4
-  must be conditional on its presence so SC2/SC12 do not fail for an out-of-scope reason.
+- **The `claude` CLI itself is never provisioned. — RESOLVED, see §4.18.** User decision: add the
+  installer. `scripts/install-claude-cli.sh` is written and on the branch; the `doctor` check and the
+  `bootstrap.sh` wiring are scheduled (deferred by HC2 — see §4.18). The Non-Goal branch is withdrawn,
+  so §4.12 steps 3–4 stay unconditional and SC12 is genuinely exercised.
 - **Two live `plugins/` entries are unclassified:** `.last_inuse_sweep` and
   `plugins/workflow-navigator.bak-20260724/` appear in neither the Versioned list, the
   gitignored-as-regenerable list, nor C6's never-versioned enumeration — the same unclassified-entry gap
@@ -827,11 +827,65 @@ machine pushing to this repo.
   `install-docker.sh` establish the pinned-fingerprint pattern, extending it to starship (checksum-pinned
   release, or provision via mise/apt) is cheap. If it is still left as-is, that is recorded as an accepted
   risk in the brief, not only in the design.
-- **Unverified — for `codebase-scan` to resolve, not assumed here:** (a) whether the container's non-root
-  user has passwordless `sudo` configured, which `install-apt.sh`, the two new apt-repo installers, and
-  `set-default-shell-zsh.sh` all require non-interactively; (b) whether `cca` supports fully
-  non-interactive profile creation in a TTY-less container. Either being false blocks unit 4/5 and should
-  surface before implementation, not at `verify-fresh` runtime.
+- **Unverified — for `codebase-scan` to resolve, not assumed here: BOTH RESOLVED**, see
+  `codebase-scan.md` Part 1 and §4.18 below. (a) The container has **no `sudo` binary at all** (the
+  `ubuntu` user is in group `sudo`, but the package is absent and `/etc/sudoers.d` does not exist) — so
+  the Dockerfile provides it, and separately must create a user whose **UID differs from 1000**, because
+  the stock `ubuntu` user shares `keenan`'s UID and would make SC6 pass by accident. (b) `cca` is fully
+  non-interactive, but **`cca init` is the wrong entry point** — there is no `cca create`/`add`
+  subcommand, `cmd_init` hardcodes the `kjweb`/`rrp` slugs, refuses once `~/.claude-shared` exists
+  (which §4.12 step 2 creates), and under `--force` `rm -rf`s `~/.claude` and writes
+  `accounts.json` **through its stow symlink into the tracked repo file**, breaking SC11. The correct
+  primitive is the library function `cca::ensure_shell <slug>`, which honours `CCA_HOME`.
+  Neither blocks unit 4/5.
+
+### 4.18 Round-4 resolutions (user decisions, 2026-07-29)
+
+Both items `codebase-scan.md` escalated are decided. This subsection is authoritative over §4.17's
+original framing.
+
+- **`cc-account-switcher` now has a remote — published private.** The scan found it had *no* remote and
+  *no* tags, which blocked `install-cc-switcher.sh`, I11's pin, and SC10. It is now
+  `github.com/FluxxField/cc-account-switcher`, **visibility private**, default branch renamed
+  `master` → `main` (per Q1's `init.defaultBranch = main`; the design calls `master` "actively wrong on
+  new repos"), with `feat/shared-and-routing` also pushed so no local-only work remains. **I11's pin
+  target is tag `v0.1.0` = commit `0e66044`.** History was swept first: **no credentials, tokens, or
+  keys anywhere in 27 commits** — but it does carry `keenan@kjweb.dev`, `keenan@roofreportpro.com`,
+  `/home/keenan/…` paths and client names (`roofco`, `roof-report-pro`) across 9 files, which is why
+  private was chosen over public. Private is also the reversible direction.
+  - **Consequence for `verify-fresh` (new, must be planned):** a private remote **cannot be cloned
+    anonymously**, so §4.12 step 1's `install-cc-switcher.sh` will fail inside the container. Do **not**
+    inject a token into the build context — that is the same mistake §4.17 rejects for the GPG key.
+    Instead `verify-fresh` feeds the switcher in from the host: a `git bundle` created from the pinned
+    tag, or a read-only bind-mount of the clone, with `install-cc-switcher.sh` taking the source as a
+    parameter (`CCA_SOURCE`, defaulting to the remote URL) so a real fresh box uses the remote and the
+    container uses the bundle. SC10 is then satisfied without a credential ever entering an image layer.
+- **The Claude Code CLI gets an installer.** `scripts/install-claude-cli.sh` is written, executable, and
+  on the branch. It follows the repo's non-apt installer shape (`install-lazygit.sh`): `need curl`,
+  early-exit idempotency, loud verification instead of `|| true`. Verified working: pinned-and-present
+  is a no-op exit 0; an install that fails to produce a binary exits 1.
+  - It resolves `$HOME/.local/bin/claude` **by path, not `command -v`**, because
+    `shell-integration.sh:20` defines a `claude()` shell function (the cca wrapper) that shadows the
+    binary in interactive shells.
+  - **Supply chain is better than starship's, and SC16 should say so precisely.** Anthropic's
+    `install.sh` downloads a per-platform manifest, extracts a SHA256, and **aborts on checksum
+    mismatch**. So the unverified surface is the *script fetch* (TLS only), not the *payload*. This is
+    materially stronger than `starship.rs/install.sh | bash`, which verifies nothing.
+  - **The CLI is version-pinnable** — `install.sh` takes a `stable|latest|X.Y.Z` argument, surfaced as
+    `CLAUDE_CLI_VERSION` (default `stable`). `verify-fresh` pins a concrete version for D9/I11
+    reproducibility. Note the contrast with plugins: `claude plugin install` has **no** pin flag, so the
+    manifest replay always takes marketplace-latest and that half of §4.12 cannot be made reproducible.
+  - **Still to schedule (deferred, not forgotten):** wiring it into `bootstrap.sh`, adding a `claude`
+    check to `doctor`, and the README row. **Deferred deliberately under HC2** — `origin/main` has 9
+    unpulled commits and editing `bootstrap.sh`/`Makefile`/`README.md` before the fork merge manufactures
+    avoidable conflicts. A brand-new file has no conflict surface, which is why the script itself could
+    land now. The wiring belongs to unit 4 alongside the other installer wiring.
+  - **PATH caveat that affects more than this check:** `doctor` runs under `SHELL := /usr/bin/env bash`
+    (`Makefile:1`), a non-login shell that never sources `.zshrc` — where `~/.local/bin` is added
+    (`stow/zsh/.zshrc:3`). So `doctor` only sees whatever PATH invoked `make`. Inside `verify-fresh`'s
+    non-interactive run this affects the **existing** `starship`/`zoxide`/`node`/`go` checks too, not
+    just `claude`; `verify-fresh` must export an explicit PATH or `doctor` fails for reasons unrelated to
+    provisioning.
 
 ### 4.11 Factual corrections to Sections 1–3
 
