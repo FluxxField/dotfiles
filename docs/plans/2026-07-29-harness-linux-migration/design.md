@@ -887,6 +887,68 @@ original framing.
     just `claude`; `verify-fresh` must export an explicit PATH or `doctor` fails for reasons unrelated to
     provisioning.
 
+### 4.19 GPG signing is broken non-interactively, and the incoming `gnupg` package does not fix it
+
+> Found while planning unit 1 (2026-07-29). Four coupled defects. This supersedes Q2's framing, which
+> verified the signing key by *capability inspection* and never attempted an actual signature.
+
+1. **Signing currently hangs, it does not merely fail.** `echo test | gpg --local-user
+   6C32D9329BDB7DA9 --clearsign --batch` **times out**. `gpg-agent` *is* running
+   (`/usr/bin/gpg-agent --supervised`, systemd socket-activated at
+   `/run/user/1000/gnupg/S.gpg-agent`), the key has two keygrips and is **passphrase-protected with
+   nothing cached**, and there is **no `~/.gnupg/gpg-agent.conf`** — so no `pinentry-program` and no
+   cache TTL. In a TTY-less context the agent waits for a prompt that can never be answered.
+   *(Caveat, stated rather than glossed: this was tested non-interactively only. An interactive terminal
+   would likely prompt and succeed. The non-interactive path is the one that matters here.)*
+   **Consequence:** unit 1 setting `commit.gpgsign = true` + `tag.gpgSign = true` globally makes **every
+   non-interactive commit hang for the agent's timeout** — scripted commits, hook-driven commits, this
+   project's own automation, and `verify-fresh`'s SC9 commit+tag. HC12 is therefore **not** satisfied by
+   repointing `signingkey`; it needs a working agent + pinentry + cache configuration. Treat a hang, not
+   a clean error, as the expected failure mode.
+2. **The incoming `b2e95f8` is the intended fix and is load-bearing, not incidental.** §4.9 flagged it
+   for review; its actual content is exactly the missing piece —
+   `default-cache-ttl 86400`, `max-cache-ttl 31536000`, `pinentry-program /usr/bin/pinentry-curses`,
+   plus `.zshrc`'s `export GPG_TTY=$(tty)` and `gpgconf --launch gpg-agent`.
+3. **But the incoming package is mis-laid-out, so merging it changes nothing.** The file is at
+   `stow/gnupg/gpg-agent.conf` — the *package root*. Stow packages mirror `$HOME`, so
+   `stow -d stow -t $HOME gnupg` links it to **`~/gpg-agent.conf`**, not `~/.gnupg/gpg-agent.conf`, and
+   `gpg-agent` never reads it. It must move to `stow/gnupg/.gnupg/gpg-agent.conf`. **This is a 9th stow
+   package that arrives with Task 0** — `codebase-facts.md` lists 8 (`bin env git mise nvim ssh zellij
+   zsh`) because `gnupg` exists only on `origin/main`. It has no row in the Section 3 reconciliation
+   table and no entry anywhere in this design; add both.
+4. **`pinentry-curses` is installed live but absent from `apt.txt`.** So a fresh box or the
+   `verify-fresh` container gets no pinentry at all, and SC9's test commit hangs exactly as above. It
+   joins `apt-common.txt` in unit 3, alongside `gnupg` and `lsb-release` (scan finding J).
+
+Two guardrails this adds, both mirroring HC8's rule for `ssh`:
+
+- **`~/.gnupg` holds live private key material** (`private-keys-v1.d/`, `pubring.kbx`,
+  `openpgp-revocs.d/`). The `gnupg` package joins the **never-`--adopt`** list with `ssh`, and
+  `stow-all.sh`'s existing `chmod 700 ~/.ssh` handling extends to `chmod 700 ~/.gnupg`. Scan finding
+  **I** already requires `adopt-existing.sh` to gain an exclusion list — `gnupg` goes in it too.
+- **SC9 inside the container** needs more than §4.17's "disposable container-local test key": it also
+  needs `pinentry` present and a batch-friendly agent config (`--pinentry-mode loopback` with a
+  scripted passphrase, or a passphraseless test key). Otherwise the container's test commit reproduces
+  this exact hang and SC9 fails for an environmental reason.
+
+**Related defect in the same incoming set — `a48b128`'s ssh-agent block.** §4.9 assigns `zsh` a
+post-merge re-diff; the specific content it will find is:
+
+```zsh
+# SSH
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+```
+
+Three problems, all for unit 3.5 to resolve rather than merge verbatim into the shared `.zshrc`:
+(a) it spawns a **new `ssh-agent` per shell** with no reuse check, leaking an agent process per
+terminal; (b) `ssh-add` on a passphrase-protected key **prompts on every new shell**, and in a
+non-interactive shell hangs — the same failure class as the GPG issue above, and a hazard for
+`verify-fresh`, which starts shells non-interactively; (c) it hardcodes `id_ed25519` (Jan 2022) while
+**I13 concluded the intended key is `id_rsa`** (Nov 2025), so the merged `.zshrc` and the corrected
+`stow/ssh/.ssh/config` would disagree about which key is canonical. Guard it on
+`[[ -z $SSH_AUTH_SOCK ]]` + interactive-shell detection, and settle the key question once for both files.
+
 ### 4.11 Factual corrections to Sections 1–3
 
 - `.gitignore` is **not empty** (137 B) — `.worktrees/` and `.migration_backups/` already exist; only
