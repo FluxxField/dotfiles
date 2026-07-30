@@ -6,7 +6,8 @@ HOST := $(shell hostname)
 .PHONY: help bootstrap startup link unlink restow adopt adopt-dry adopt-merge \
         ensure-locale ohmyzsh-install mise-install mise-install-globals \
         nvim-stable nvim-nightly nvim-current nvim-subtree-pull nvim-subtree-push \
-        fonts-linux fonts-windows doctor audit install-stripe install-redis-stack
+        fonts-linux fonts-windows doctor audit install-stripe install-redis-stack \
+        test sweep-secrets assert-gitignore-safe install-claude-cli
 
 help:
 	@echo "Targets: bootstrap | link | unlink | restow | adopt | adopt-dry | adopt-merge | ensure-locale | mise-install | mise-install-globals | ohmyzsh-install | nvim-subtree-pull | nvim-subtree-push | nvim-stable | nvim-nightly | nvim-switch-stable | nvim-switch-nightly | fonts-linux | fonts-windows | startup | doctor"
@@ -73,6 +74,32 @@ fonts-windows:
 
 audit:
 	bash scripts/audit.sh
+
+test:
+	bash tests/run.sh
+
+# HC4 gate — no credentials, tokens, or addressable endpoints in tracked content.
+# SECURITY SURFACE — review every addition to this list.
+# These two paths plant real-SHAPED but fake tokens on purpose: they are the fixtures
+# that prove detection works (the plan embeds the test file's heredoc verbatim, so the
+# fixtures appear twice). Exemption is BY PATH, so the same values in any other file
+# still fail the sweep, and the run discloses how many matches it skipped.
+# Never widen this to --allow (value-scoped = global blind spot).
+# Accepted residual risk: a real secret pasted into one of these two files is not
+# caught. plan-unit-1.md previously held a real endpoint, so treat edits there with care.
+SWEEP_EXEMPT := \
+	--allow-path tests/sweep-secrets.test.sh \
+	--allow-path docs/plans/2026-07-29-harness-linux-migration/plan-unit-1.md
+
+sweep-secrets:
+	bash scripts/sweep-secrets.sh --worktree $(SWEEP_EXEMPT)
+
+# C6 gate — run BEFORE any harness `git add`.
+assert-gitignore-safe:
+	bash scripts/assert-gitignore-safe.sh
+
+install-claude-cli:
+	bash scripts/install-claude-cli.sh
 
 install-stripe:
 	bash scripts/install-stripe.sh

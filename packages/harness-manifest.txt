@@ -1,0 +1,63 @@
+# Claude Code harness classification — the single source of truth.
+#
+# Three classes, and EVERY entry in ~/.claude-shared must match exactly one.
+# An unclassified entry is a bug: it is how keybindings.json stayed dangling and
+# how .last_inuse_sweep and workflow-navigator.bak went unnoticed (§4.17).
+#
+#   versioned — tracked in stow/claude/.claude-shared/, stow-symlinked into place
+#   ignored   — real machine state, regenerable or local; gitignored
+#   never     — must NEVER be committed under any circumstance (HC4)
+#
+# Format: <class> <path-relative-to-~/.claude-shared>
+# A trailing / marks a directory and is SIGNIFICANT — assert-gitignore-safe.sh
+# passes the path to `git check-ignore` verbatim, and a `foo/` rule does not
+# match the bare path `foo`.
+
+# ── versioned ───────────────────────────────────────────────────────────────
+versioned  skills/
+versioned  hooks/
+versioned  commands/
+versioned  agents/
+versioned  settings.json
+versioned  settings.local.json
+versioned  CLAUDE.md
+versioned  statusline.sh
+versioned  shell-integration.sh
+versioned  accounts.json
+versioned  keybindings.json
+versioned  local-marketplace/
+versioned  routes.example
+
+# ── ignored (regenerable or machine-local) ──────────────────────────────────
+# plugins/ as a whole: NOTHING under it is versioned, and §4.1 requires it stay a
+# real directory pre-created by stow-all.sh rather than a repo-backed symlink. So
+# the whole subtree is ignored. The individual entries below are redundant under
+# that rule and kept so the live-tree scan can classify each one it finds.
+ignored    plugins/
+ignored    plugins/cache/
+ignored    plugins/data/
+ignored    plugins/marketplaces/
+ignored    plugins/installed_plugins.json
+ignored    plugins/known_marketplaces.json
+ignored    plugins/plugin-catalog-cache.json
+ignored    plugins/blocklist.json
+ignored    plugins/.last_inuse_sweep
+ignored    plugins/workflow-navigator
+ignored    plugins/workflow-navigator.bak-20260724/
+ignored    handoffs/
+ignored    routes
+ignored    settings.json.bak-20260723-103211
+ignored    settings.json.bak2-105016
+
+# ── never versioned (HC4) ───────────────────────────────────────────────────
+# These live in the per-account dirs, not ~/.claude-shared, but the gate asserts
+# them ignored anyway so a stray copy can never be staged.
+never      .credentials.json
+never      .claude.json
+never      history.jsonl
+never      projects/
+never      sessions/
+never      todos/
+never      shell-snapshots/
+never      stats/
+never      debug/
