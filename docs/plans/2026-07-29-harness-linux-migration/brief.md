@@ -21,12 +21,23 @@
    exists in no other location; it is pushed as `archive/2022-pre-rewrite` before its clone is removed,
    **and the removal is gated on a verified `git ls-remote` SHA match that aborts on mismatch** — no
    `|| true`. This is the only unrecoverable operation in the project.
-4. **No credentials or transcripts in the repo — including in history.** `.credentials.json`,
-   `.claude.json`, `history.jsonl`, `projects/`, `sessions/`, `todos/`, `shell-snapshots/`, `stats/`,
-   `debug/` stay untracked. The remote is public. The harness-state `.gitignore` rules land in their own
-   verified commit **before** the first harness `git add`; `git add -A` is never used while staging the
-   harness. `.gitignore` does not remove anything retroactively and HC3 forbids the force-push that
-   would, so this ordering is a one-way door.
+4. **No credentials, transcripts, or machine state in the repo — including in history.** The full
+   never-versioned set, which `scripts/assert-gitignore-safe.sh` asserts via `git check-ignore` per
+   entry: `.credentials.json`, `.claude.json`, `history.jsonl`, `projects/`, `sessions/`, `todos/`,
+   `shell-snapshots/`, `stats/`, `debug/`, `plugins/{cache,data,marketplaces}/`,
+   `installed_plugins.json`, `known_marketplaces.json`, `plugin-catalog-cache.json`, `blocklist.json`,
+   `handoffs/`, **`settings.json.bak*`**, **`routes`**, `.last_inuse_sweep`, and
+   `plugins/workflow-navigator.bak-20260724/`. The remote is public. The harness-state `.gitignore`
+   rules land in their own verified commit **before** the first harness `git add`; `git add -A` is never
+   used while staging the harness. `.gitignore` does not remove anything retroactively and HC3 forbids
+   the force-push that would, so this ordering is a one-way door.
+   *(Revised: round 3 found this list was a strict subset of the design's, and the omission was not
+   harmless — **both `settings.json.bak*` files were verified to contain the `CC_NTFY_TOPIC` literal
+   `rrp-cc-e2608a317ed1`** that HC5 exists to keep out of tracked content, plus 20 and 6 hardcoded
+   `/home/keenan` paths. `.last_inuse_sweep` and the `workflow-navigator.bak` directory were classified
+   as neither versioned nor ignored — the same gap that let `keybindings.json` through. The assertion
+   script generates its coverage from a scan of the live tree and fails on any entry classified as
+   neither, so the next undocumented file cannot repeat this.)*
 5. **No addressable endpoints in any tracked file.** `CC_NTFY_TOPIC` and the Tailscale IP are absent
    from tracked content, with values supplied from gitignored env and a committed `.example`.
    *(Revised: round 1 found the original mitigation insufficient — the topic literal lives at
@@ -41,7 +52,12 @@
    package follows its row in the design's Section 3 table, and live files are backed up to
    `.migration_backups/` before being replaced. That directory is gitignored, hence machine-local and
    never pushed — it may be deleted only after `make verify-fresh` passes **and** explicit
-   confirmation, and a one-time off-machine copy is taken before the first package is replaced.
+   confirmation, and a one-time off-machine copy is taken before the first package is replaced, to an
+   existing private encrypted target (explicitly not another public remote or an unencrypted share).
+   **The rollback path for a failed or partial reconciliation is the existing
+   `scripts/merge-from-backup.sh`** — round 2 found HC7 said when the backups may be deleted but never
+   how they are used to recover, while a script for exactly that purpose already sits unreferenced in
+   the repo.
 8. **`~/.ssh` private-key permissions are never widened.** **Three** private keys live there
    (`id_ed25519`, `id_rsa`, `enduring-laptop`) — round 1 corrected the count from four. `--adopt` is
    never run against the `ssh` package; the stray `.id_ed25519.pub.swp` is removed, not adopted.
@@ -77,6 +93,13 @@
   *(Revised: round 1 found carve-out (c) was needed because a naive (b) would enable both superpowers
   sources on both profiles — a duplicate-skill regression on `kjweb`, which today has none.)*
 - macOS support beyond keeping the existing `mac` branches intact; it is not tested.
+- **Project-scoped plugin enablement.** *(NEW — round 2.)* `packages/claude-plugins.txt` declares
+  **user-scope installs only**. Project-scoped records key on a `projectPath` outside this repo
+  (`roof-report-pro-web`) that will not exist on a fresh box, so modelling them in a provisioning
+  manifest is out of scope — they are re-enabled per project by whoever works in it.
+- **Restoring dangling-symlink detection to `cca doctor`.** It checks link text, never whether the
+  target resolves — which is why `keybindings.json` went unnoticed. Fixing that belongs to
+  `cc-account-switcher`; here the gap is covered by an explicit assertion instead (SC12).
 - ~~Resolving the duplicate `superpowers` install (Q4)~~ — **no longer a non-goal.** User decision:
   de-duplicate during the D7 merge. Safe because both records reference the identical upstream commit
   `a98c5dfc9de0df5318f4980d91d24780a566ee60`; the 6.1.1-vs-4.2.0 labels are a marketplace-manifest
@@ -89,25 +112,48 @@
   `Keenan Johns (Github Account) <keenanjj13@gmail.com>`), keeping signing enabled. Open task, not an
   assumption: confirm that public key is registered on GitHub —
   `gh auth refresh -h github.com -s admin:gpg_key && gh api user/gpg_keys` (the session's token lacks
-  the scope, and adding one is the user's call).
+  the scope, and adding one is the user's call). **If it is absent, upload it before enabling signing** —
+  otherwise commits sign locally but show "Unverified" on GitHub. This fallback is the decision, not a
+  question to re-open at implementation time.
 - **Superpowers:** keep `superpowers@claude-plugins-official`, drop `superpowers@superpowers-marketplace`.
 - **WSL horizon:** permanent (Q7 unresolved; the reversible choice).
-- **Delivery:** four sequenced units — see below.
+- **Delivery:** five sequenced units — see below.
+- **To be decided and RECORDED in unit 2, not improvised:** whether the Claude Code settings
+  `env`/permission blocks expand `${VAR}`. If yes, `settings.json` is committed with placeholders and
+  stays stow-symlinked. If no, it becomes gitignored-real + a tracked `settings.json.example`,
+  materialized by `install-env.sh` **before** `stow-all.sh`. It is never rewritten in place after
+  stowing — that would edit the tracked repo file and break SC11.
 
 ## Delivery Sequence
 
-Landed as four sequenced units rather than one change, because unit 1 unblocks every later commit,
+Landed as five sequenced units rather than one change, because unit 1 unblocks every later commit,
 unit 2 must precede any harness `git add`, and unit 5 depends on 2 and 4:
 
-1. Fork reconciliation + git identity + GPG fix.
-2. `.gitignore` harness-state rules + secret/PII sweep of all 47 versioned files.
-3. Package lists + tool-ownership policy + `audit.sh`.
-4. `PLATFORM` + `hosts/` + `verify-fresh`, with a `doctor` that can fail.
-5. Harness vendoring.
+1. Fork reconciliation + git identity + GPG fix. The 9 incoming remote commits are swept for
+   secrets/endpoints **before** the merge — a `git merge` into a public branch is as history-permanent
+   as a `git add`, and it happens before unit 2's gate exists.
+2. `.gitignore` harness-state rules + secret/PII sweep. Scope is every file newly tracked or modified
+   anywhere in this work — not only the 47 harness files, but also `stow/tmux/.tmux.conf` (adopted
+   verbatim), `ccz`, `stow/ssh/.ssh/config`, the mise config, `.zshrc`, `packages/**`, `scripts/**`.
+3. Package lists + tool-ownership policy + `audit.sh` (five classes).
+3.5. Per-package `stow/` reconciliation — `nvim` (HC10's commit-and-verify gate **first**), `zsh`,
+   `env`, `bin`, `ssh`, `tmux` — entered via the post-merge re-diff of `zsh`/`env`/`nvim` against the
+   planned overlays. *(Round 2 found these packages, including the highest-risk one, unassigned to any
+   unit.)*
+4. `PLATFORM` + `hosts/` + `verify-fresh`, with a `doctor` that can fail and the `make unlink`/`restow`
+   bugs fixed.
+5. Harness vendoring, internally checkpointed: vendor + template → `local-marketplace` relocation +
+   plugin replay → `rrp/settings.json` collapse + superpowers de-dup → `keybindings.json` → final
+   SC5/SC6/SC11 verification. It is the only unit that writes into live `~/.claude-shared` /
+   `~/.claude-accounts` state, so it gets the same staging rigor as the irreversible operations.
 
 ## Success Criteria
 
-1. `git log` shows local and remote history reconciled, with no commits lost from either side.
+1. Local and remote history are reconciled with no commits lost from either side — verified
+   mechanically: each of the 3 local-only and 9 remote-only commits (or its content) is an ancestor of
+   the merged `main`, checked via `git merge-base --is-ancestor`.
+   *(Revised: round 2 noted "`git log` shows … reconciled" named no checker, unlike SC8's `ls-remote`
+   SHA match.)*
 2. `make verify-fresh` passes: `bootstrap.sh` + `stow-all.sh` complete non-interactively in a clean
    `ubuntu:24.04` container as a non-root sudo user, **`make doctor` exits non-zero on any missing tool
    and exits 0 here**, and every stow symlink resolves to a real file.
@@ -116,12 +162,15 @@ unit 2 must precede any harness `git add`, and unit 5 depends on 2 and 4:
    live emitting `MISSING: eza` and "all present" together with `$?`=0. Fixing `doctor`'s exit
    semantics is now part of the criterion, not assumed. Note also that `bootstrap.sh` is pervasively
    `|| true`, so "bootstrap completed" is not evidence — verify-fresh's assertions are.)*
-3. `make audit` reports **all four** of its classes clean: no apt-declared-but-uninstalled, no
-   untracked-but-installed apt packages, no mise-declared-but-uninstalled, and no
-   mise-installed-but-undeclared tools. No tool is provisioned by direct `cargo install`.
-   *(Revised: round 1 found the original wording covered 2 of 4 classes, and that the omitted two are
-   where the real drift is — `bottom` is declared in both `apt.txt` and mise and absent from PATH;
-   `zellij` and `exa` are cargo-direct and invisible to both audits.)*
+3. `make audit` reports **all five** of its classes clean: no apt-declared-but-uninstalled, no
+   untracked-but-installed apt packages, no mise-declared-but-uninstalled, no
+   mise-installed-but-undeclared tools, and **no binary in `~/.cargo/bin` unattributable to a
+   mise-managed install**.
+   *(Revised twice: round 1 found the original wording covered 2 of 4 classes, and that the omitted two
+   are where the real drift is — `bottom` is declared in both `apt.txt` and mise and absent from PATH.
+   Round 2 found that even four classes structurally cannot see a tool declared in neither list, so
+   "no direct cargo install" was an unenforceable claim; the fifth class makes it an invariant rather
+   than a one-time cleanup.)*
 4. On this machine, every package in the design's Section 3 table is genuinely stowed — `~/.zshrc`,
    `~/.gitconfig`, `~/.tmux.conf`, `~/.ssh/config`, `~/.config/{nvim,mise,zellij,dotfiles}`,
    `~/.local/bin/{nvimx,ccz}` all resolve into `~/.dotfiles`, with pre-existing content preserved in
@@ -129,13 +178,16 @@ unit 2 must precede any harness `git add`, and unit 5 depends on 2 and 4:
    hardcodes `id_ed25519` from Jan 2022; the newest key is `id_rsa`, Nov 2025).
    *(Revised: `~/.ssh/config` was absent from the list even though its row is the one that says the
    template needs "correcting, not just installing".)*
-5. Switching profiles with `cca` leaves the same plugins enabled under both `rrp` and `kjweb`:
-   `rrp/settings.json` is a symlink to shared, `workflow-navigator@local` resolves under both, and
-   exactly **one** `superpowers` source is enabled on each.
+5. Switching profiles with `cca` leaves the same plugins enabled under both `rrp` and `kjweb` —
+   verified by diffing the two profiles' effective `enabledPlugins` blocks and asserting they are
+   identical: `rrp/settings.json` resolves to shared, `workflow-navigator@local` resolves under both,
+   and exactly **one** `superpowers` source is enabled on each.
+   *(Revised: round 3 noted SC5 was the only criterion naming no checker.)*
 6. A fresh `~/.claude-shared` can be reconstructed from the repo plus
    `scripts/install-claude-plugins.sh` and `scripts/claude-profile-init.sh`, with no absolute
    `/home/keenan` path in any tracked file **under `stow/claude/**` or `stow/env/**`**, and the harness
-   functions under a different `$HOME`.
+   functions under a different `$HOME` — verified in a container whose **username and UID differ from
+   the live machine's**, so this cannot pass by accident.
    *(Revised: round 1 found this unachievable as written — the criterion demanded it of "any tracked
    file" while the design's only mechanism (D6) gitignores machine-state JSON and never touches paths
    inside versioned content: 6 occurrences in `settings.json`, 4 of 16 hooks, 3 skills, 1
@@ -156,3 +208,32 @@ unit 2 must precede any harness `git add`, and unit 5 depends on 2 and 4:
     with no pre-existing `~/.claude-shared`, each versioned entry beneath it is a symlink into the repo,
     and `git status --porcelain` is clean after a harness run — i.e. runtime state did not land in the
     working tree. *(Round 1, HC11.)*
+12. **NEW (round 2).** `verify-fresh` exercises the reproducibility path itself, not just stowing:
+    it runs `claude-profile-init.sh` for at least one synthetic profile, then
+    `install-claude-plugins.sh`, and asserts the regenerated `installed_plugins.json` /
+    `known_marketplaces.json` are self-consistent, contain no unresolvable `installPath`, and carry no
+    non-portable home path. It also asserts `~/.claude-shared/keybindings.json` resolves to a real
+    file. *(Round 2 found the design called the plugin replay "the piece that makes a fresh box
+    reproducible" while no criterion exercised it — SC2/SC11 tested stowing and `doctor` only. And
+    `cca doctor` cannot cover `keybindings.json`: it checks a shared symlink's link text, never whether
+    the target resolves, which is exactly why that dangling link went unnoticed.)*
+13. **NEW (round 2).** `stow-all.sh` is idempotent: running it a second time on an
+    already-provisioned box produces no error and no change. Additionally `make restow` succeeds and is
+    equivalent to `unlink` then `link`, and `make unlink` honours the same `hosts` exclusion and
+    per-package flags as `stow-all.sh`. *(The review-then-`restow` workflow assumes repeat runs are
+    routine, and `make restow` is currently outright broken — `restow:` is a tab-indented recipe running
+    `unlink link` as a shell command — while `make unlink` bypasses `stow-all.sh` entirely and lacks its
+    `hosts` exclusion. Round 3 noted SC13 tested `stow-all.sh` but not the two broken targets.)*
+14. **NEW (round 3).** `env.sh` and `routes` — and `settings.json` if the no-expansion branch applies —
+    exist as real files after `verify-fresh`, and `install-env.sh` never clobbers an existing local file
+    (running it twice with a locally-edited `env.sh` leaves the edit intact). *(Round 3: the
+    materialization mechanism was the one Critical from round 1 with no dedicated criterion.)*
+15. **NEW (round 3).** Changed hook/skill/command content is detected on the **execution path**, not on
+    `make restow`: after simulating a `git pull` that edits a vendored hook's contents with no stow
+    operation, the session-start check surfaces the diff rather than executing silently.
+    *(Round 3 Critical: because the package is stowed `--no-folding`, each hook is an individual symlink
+    into the repo, so a content-only pull goes live with no restow — the round-2 `restow` gate guarded a
+    step that vector never takes.)*
+16. **NEW (round 3).** `install-gh.sh` and `install-docker.sh` pin GPG key fingerprints and use
+    `signed-by` keyring files — no `apt-key add`. If starship's `curl | bash` is left unhardened, that is
+    recorded here as an accepted residual risk rather than an oversight.

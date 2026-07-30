@@ -169,8 +169,104 @@ These gate the design revision; nobody but the user can answer them.
 
 ---
 
-## Gate
+---
+---
 
-**BLOCKED.** 10 Critical findings. Per the adversarial-review gate: address `REVISE-DESIGN` items in
-`design.md`, restore C4 in `brief.md` (`LOOP-TO-BRIEF`), then re-run the review. Loop exit is a fresh
-run producing zero Criticals — not judgement that the edits were sufficient. Round 1 of a maximum 3.
+# Round 2 — 2026-07-29
+
+Fresh critics on design revision 2 / brief revision 2, given **no knowledge of round 1**, so an
+inadequate fix would be re-found rather than assumed closed.
+
+**Result: none of the 10 round-1 Criticals were re-raised by any critic.** Security explicitly recorded
+C6, C7, and C8's mechanisms as sound; architecture recorded C2's `doctor` fix, C6's gate, and the
+`apt.txt`/`audit.sh` closure as complete; completeness recorded HC10, and the SC2/SC3/SC6 rewrites, as
+genuinely falsifiable. The revision held.
+
+**One new Critical, found independently by two critics:**
+
+| # | Finding | Critics | Path |
+|---|---------|---------|------|
+| **R2-C1** | **`verify-fresh`'s script inventory was never specified.** §4.2 fixed *whether* `doctor` can fail without ever saying *what `verify-fresh` runs*. Its only description (Section 3) predates units 4–5 and names none of the new installers — so SC5, SC9, SC10, SC11 rested on an implied mechanism. Worse, `install-claude-plugins.sh` and `claude-profile-init.sh` — which the design itself calls "the piece that makes a fresh box reproducible" — were exercised by nothing. Same vacuous-acceptance-test class as round-1 C2. | Arch, Comp | `REVISE-DESIGN` → closed by §4.12 |
+
+**Round-2 Importants** (all folded into §4.13–§4.15 and the brief): sweep scope limited to
+`stow/claude/**` when `tmux`/`ccz`/`ssh`/`mise`/`zsh` are also newly tracked; the 9 incoming commits
+merged into a public branch without a sweep, in unit 1 *before* unit 2's gate exists; both irreversible
+gates specified as prose rather than scripts; I10's hook gate stated as policy with nothing enforcing it;
+installer ordering unstated; the tool-ownership rule not resolving its own `bottom` example; `audit.sh`'s
+four classes structurally unable to see a cargo-direct install; the plugin manifest schema unable to
+express project-scoped records; per-package reconciliation (including HC10's nvim precondition — the
+highest-risk item) unassigned to any unit; unit 5 undivided; `keybindings.json` missing from the
+Files-Touched enumeration; `.migration_backups/` restore path unnamed while
+`scripts/merge-from-backup.sh` sat unreferenced in the repo; SC1 naming no checker.
+
+**Resolved by the orchestrator after round 2** (three critic "unverified" flags, all checked directly):
+
+- **`make restow` is broken and `make unlink` bypasses `stow-all.sh`.** `cat -A` confirms `restow:` is
+  followed by a tab-indented recipe `unlink link`, so it runs `/usr/bin/unlink` against a file named
+  `link` and fails. `make unlink` has its own `find stow … | xargs stow -D` loop that skips
+  `stow-all.sh` *and* lacks its `-not -name hosts` filter, so it attempts `stow -D hosts`. Both
+  pre-existing; both load-bearing for the review-then-restow workflow. → §4.14.
+- **`cca doctor` cannot detect a dangling shared symlink**, and its unknown-item scan
+  (`cca::untracked_items`) covers only the per-account directory, never `~/.claude-shared`. Two
+  consequences: D8 is achievable with **no** `cc-account-switcher` change (the Non-Goal boundary holds),
+  and SC10 is **not** sufficient cover for `keybindings.json` — `cmd_doctor` compares link *text* only,
+  which is exactly why that dangling link went unnoticed. Hence the separate assertion in SC12.
+- **`stow/ssh/.ssh/config` carries no network topology** — a `Host *` default block and a commented-out
+  `myserver.example.com` example. Only the `IdentityFile` line needs correcting. No finding.
+
+---
+
+# Round 3 — 2026-07-29
+
+Fresh critics on design revision 3 / brief revision 3. **Result: 4 Criticals — and the 3-loop cap is
+reached.**
+
+The character of the findings changed, which is the important signal: **three of the four are defects in
+the revision text itself, not in the underlying design** — two are contradictions introduced by the
+round-2/3 edits, one is a brief-side enumeration that drifted from the design's. Only R3-C1 is a genuine
+new insight into the design.
+
+| # | Finding | Critics | Status |
+|---|---------|---------|--------|
+| **R3-C1** | **The hook-diff gate guards a step the threat never takes.** §4.15 wired the review gate to `make restow`. But the `claude` package is stowed `--no-folding`, so **each hook is an individual symlink into the repo working tree** — a `git pull` that changes only a vendored hook's *contents* needs no stow, no restow, no link. The existing symlink already resolves to the new bytes, and the code auto-executes on the next session. The mitigation was unreachable for the exact vector I10/D18 name (a second machine actively pushing to this repo). | Sec | Closed by **§4.16** — gate moved to a session-start hash check on the execution path, plus SC15 which tests it by simulating a content-only pull with no stow operation |
+| **R3-C2** | **The `settings.json` no-expansion fallback contradicted the clean-tree guarantee.** §4.5 said `claude-profile-init.sh` would rewrite the paths "at install time" — but `settings.json` is stow-symlinked, so an in-place post-stow edit edits the **tracked repo file** and breaks §4.12's `git status --porcelain`-clean assertion, while swapping the symlink for a real copy breaks the "every versioned entry is a symlink" assertion. Neither branch was reconciled. Self-inflicted by the round-2 wording. | Arch | Closed by rewritten **§4.5** — both branches fully specified; the no-expansion branch gets the `env.sh`/`routes` treatment (gitignored-real, materialized from `.example` *before* stow). Never rewritten in place |
+| **R3-C3** | **§4.12 and §4.15 gave contradictory installer orders** with no tie-breaker between two subsections of the same authoritative section. §4.15 put `stow-all.sh` last; §4.12 puts it at step 2. Following §4.15 literally would run `claude-profile-init.sh` against a `~/.claude-shared` that does not exist yet — reproducing the dangling-shared-symlink defect (I6) the design exists to fix. Self-inflicted by the round-2 wording. | Arch | Closed — **§4.12 is now sole canonical order**; §4.15's bullet corrected and the error recorded |
+| **R3-C4** | **The brief's never-versioned list was a strict subset of the design's**, dropping `handoffs/`, `settings.json.bak*`, and `routes`. Not harmless: the orchestrator verified that **both** `settings.json.bak*` files contain the `CC_NTFY_TOPIC` literal `rrp-cc-e2608a317ed1` — the exact value HC5 exists to keep out of tracked content — plus 20 and 6 hardcoded `/home/keenan` paths. An implementation reading only the brief would under-scope `assert-gitignore-safe.sh`. | Comp | Closed by rewritten **HC4** (full list) — and `assert-gitignore-safe.sh` now generates coverage from a live-tree scan and fails on any entry classified as neither versioned nor ignored, so this class cannot recur |
+
+**Round-3 Importants** (folded into §4.17 and the brief): the **`claude` CLI itself is never
+provisioned** anywhere, yet §4.12 steps 3–4 run it in a from-scratch container; `.last_inuse_sweep` and
+`plugins/workflow-navigator.bak-20260724/` were classified as neither versioned nor ignored (the same gap
+as `keybindings.json`); GPG signing inside the ephemeral container needed a specified mechanism that does
+**not** put the real secret key in an image layer; `verify-fresh` reads as landing whole in unit 4 while
+§4.12 steps 3–4 depend on unit-5 deliverables; `install-apt.sh`'s cwd dependency; Task 0 in-merge
+conflict guidance; the `.ssh` swap-file removal stated without an assertion; SC5 naming no checker;
+and the brief's stray "four sequenced units" contradicting its own five-item list.
+
+**Two items deliberately left for `codebase-scan`** rather than assumed: whether the container's non-root
+user has passwordless `sudo` (required non-interactively by `install-apt.sh`, both new apt-repo
+installers, and `set-default-shell-zsh.sh`), and whether `cca` supports non-interactive profile creation
+in a TTY-less container. Either being false blocks units 4–5, and both are cheap to check with the
+codebase in hand.
+
+---
+
+## Gate — HALTED AT THE 3-LOOP CAP
+
+Round 1: 10 Critical. Round 2: 1 Critical (none of round 1's re-raised). Round 3: 4 Critical, of which 3
+were defects in the revision text and 1 was a genuine new design insight.
+
+All four round-3 Criticals have been addressed in design revision 4 / brief revision 4 (§4.5 rewritten,
+§4.12 made canonical, §4.16 added, HC4 corrected, SC14–SC16 added). **But the skill's loop exit condition
+is a fresh critic run producing zero Criticals — not the orchestrator's judgement that the edits were
+sufficient — and the documented maximum of 3 loops is now reached.**
+
+Per the skill, this requires explicit human adjudication. The user chooses:
+**(a)** authorize a round-4 verification pass (exceeds the documented cap), **(b)** accept the current
+state and proceed to `codebase-scan`, or **(c)** revise further / abandon.
+
+**Orchestrator's read, for what it is worth:** the trend supports (b). Round 1 attacked the design and
+found ten real defects. Round 3 found none in the design — three were contradictions the revisions
+themselves introduced, all now removed, and the fourth (R3-C1, the hook gate) was a genuinely good catch
+that is now fixed with a testable criterion. Continued rounds are increasingly reviewing the review
+prose rather than the plan. The two open `sudo`/`cca` questions are better answered by `codebase-scan`,
+which reads the actual code, than by another document-only critic pass.

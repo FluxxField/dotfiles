@@ -33,7 +33,7 @@
 | `bootstrap.sh` | dotfiles | modify | Key WSL branches off `PLATFORM`; wire new installer scripts. |
 | `stow-all.sh` | dotfiles | modify | Overlay `hosts/` by `PLATFORM`; the `hosts/` tree it already references must actually exist. |
 | `Makefile` | dotfiles | modify | Add `verify-fresh`, `install-gh`, `install-docker`, `claude-plugins`, `claude-profile-init`; extend `doctor`. |
-| `stow/claude/.claude-shared/**` | dotfiles | create | New package: `skills/`, `hooks/`, `commands/`, `agents/`, `settings.json`, `settings.local.json`, `CLAUDE.md`, `statusline.sh`, `shell-integration.sh`, `accounts.json`, `local-marketplace/`. |
+| `stow/claude/.claude-shared/**` | dotfiles | create | New package: `skills/`, `hooks/`, `commands/`, `agents/`, `settings.json`, `settings.local.json`, `CLAUDE.md`, `statusline.sh`, `shell-integration.sh`, `accounts.json`, **`keybindings.json`** (§4.10 I6 — currently a dangling shared symlink, invisible to `cca doctor`), `local-marketplace/`. |
 | `stow/claude/.claude-shared/routes.example` | dotfiles | create | `routes` itself is machine-local (absolute project paths) and gitignored; only the example is tracked. |
 | `stow/hosts/{@common,wsl,linux,$(hostname)}/` | dotfiles | create | Documented in README today but has never existed. |
 | `stow/tmux/.tmux.conf` | dotfiles | create | Adopt the 48-line live config, tracked nowhere today. |
@@ -49,7 +49,9 @@
 | `~/github/dotfiles` (stale 2022 clone) | — | archive then remove | Push as `archive/2022-pre-rewrite` FIRST — sole surviving copy of pre-rewrite history. Removal **gated on a verified `ls-remote` SHA match** (§4 C7). |
 | `scripts/audit.sh` | dotfiles | modify | **Was missing from this table.** Reads a single `APT_LIST="$DOTFILES_ROOT/packages/apt.txt"`; must union the three split lists filtered by `$PLATFORM` or it breaks the moment `apt.txt` is deleted (§4 I1). |
 | `scripts/install-env.sh` | dotfiles | create | Copies `*.example` → real file **only when absent**, for `env.sh` and `routes`. Ordered before `stow-all.sh`. Without it a fresh clone has no file for stow to link (§4 C5). |
-| `scripts/claude-path-template.sh` | dotfiles | create | Rewrites absolute `/home/keenan` paths in the versioned harness files to `$HOME`/`${CCA_HOME:-$HOME}` form, and reverses at install time. Required for SC6 (§4 C9). |
+| `scripts/claude-path-template.sh` | dotfiles | create | Parameterizes absolute `/home/keenan` paths in versioned **shell / hook / skill** files to `$HOME`/`${CCA_HOME:-$HOME}` form, and reverses them at install time. `settings.json`'s permission globs + `additionalDirectories` are handled by `claude-profile-init.sh` in the no-expansion branch only (§4.15). Required for SC6. |
+| `scripts/assert-gitignore-safe.sh` | dotfiles | create | Loops the never-versioned path list with `git check-ignore -q`, fails loudly. Scripts the C6 gate instead of trusting a typed sequence (§4.15). |
+| `Makefile` (`unlink`, `restow`) | dotfiles | fix | **Pre-existing bugs.** `restow:` is a tab-indented recipe running `unlink link` as a shell command, so it fails; `unlink` has its own stow loop that bypasses `stow-all.sh` and lacks the `-not -name hosts` filter (§4.14). |
 
 **Schema Changes** — `None` (no database in scope)
 
@@ -58,7 +60,8 @@
 **Domain Types / Contracts**
 
 - `PLATFORM` — new exported contract from `scripts/detect-os.sh`, values `wsl` | `linux` | `mac`.
-  Consumed by `bootstrap.sh`, `stow-all.sh`, `install-apt.sh`, and the `hosts/` overlay selection.
+  Consumed by `bootstrap.sh`, `stow-all.sh`, `install-apt.sh`, `audit.sh` (§4.10 I1 — it must union the
+  three split lists per `$PLATFORM`), and the `hosts/` overlay selection.
   Supersedes implicit "if not WSL, hope for the best" branching. `OS`/`WSL` remain exported for
   backward compatibility.
 - `packages/apt-{common,linux,wsl}.txt` — line-delimited apt package names, `#` comments allowed.
@@ -96,10 +99,12 @@
   and are verified (no never-versioned path stageable) **before** the first harness `git add`;
   (b) the 2022 clone is removed only after `git ls-remote origin archive/2022-pre-rewrite` returns the
   expected SHA. Both abort on mismatch — no `|| true`.
-- D17: **Landed as four sequenced units** (user decision), not one change: (1) fork reconciliation +
+- D17: **Landed as five sequenced units** (user decision), not one change: (1) fork reconciliation +
   git identity + GPG, (2) `.gitignore` + secret/PII sweep, (3) packages + tool-ownership policy +
-  `audit.sh`, (4) `PLATFORM` + `hosts/` + `verify-fresh` with a failing `doctor`, then (5) harness
-  vendoring. Rationale: unit 1 unblocks every later commit, unit 2 must precede any harness `git add`,
+  `audit.sh`, (3.5) per-package `stow/` reconciliation — `nvim` (HC10's precondition first), `zsh`,
+  `env`, `bin`, `ssh`, `tmux` — entered via §4.9's post-merge re-diff, (4) `PLATFORM` + `hosts/` +
+  `verify-fresh` with a failing `doctor`, then (5) harness vendoring, itself internally checkpointed
+  (§4.15). Rationale: unit 1 unblocks every later commit, unit 2 must precede any harness `git add`,
   and unit 5 depends on 2 and 4. Avoids a stuck half-migrated machine.
 - D18: **WSL support is treated as permanent** (user decision, Q7 unresolved). `win/`, `scripts/win/`,
   and `hosts/wsl/` stay first-class and maintained; HC1 has no end date. Corollary: because another
@@ -502,11 +507,27 @@ hooks** (`continuous-learning.sh`, `session-stats.sh`, `wip-snapshot.sh`, `conte
 is a portability defect, not only an SC6 wording problem.
 
 `scripts/claude-path-template.sh` parameterizes them following the pattern `shell-integration.sh`
-already demonstrates (`"${CCA_HOME:-$HOME}/.claude-accounts"`): shell files use `$HOME` /
-`${CCA_HOME:-$HOME}` directly; `settings.json` permission globs and `additionalDirectories` need the
-same treatment, subject to 4.4's finding about whether that file supports expansion — if it does not,
-the paths are rewritten at install time by `claude-profile-init.sh` instead of being expanded at read
-time. SC6 is scoped to tracked files under `stow/claude/**` and `stow/env/**`.
+already demonstrates (`"${CCA_HOME:-$HOME}/.claude-accounts"`): shell, hook, and skill files use
+`$HOME` / `${CCA_HOME:-$HOME}` directly. SC6 is scoped to tracked files under `stow/claude/**` and
+`stow/env/**`.
+
+`settings.json`'s permission globs and `additionalDirectories` are the hard case, and the resolution
+depends on §4.4's undetermined expansion question. **Both branches are now fully specified — neither
+may rewrite a stowed file in place:**
+
+- **If the settings `env`/permission blocks expand `${VAR}`:** commit `settings.json` with placeholders.
+  It stays a versioned, stow-symlinked file. Nothing is rewritten at any point.
+- **If they do not:** `settings.json` gets **exactly the `env.sh`/`routes` treatment** — the real file
+  becomes gitignored, a `settings.json.example` carrying `$HOME`-relative placeholders is tracked, and
+  `install-env.sh` materializes the real file (substituting the actual `$HOME`) **before** `stow-all.sh`
+  runs. `settings.json` then moves from the Versioned list to the gitignored-materialized list for the
+  purposes of §4.1's assertions.
+
+An earlier draft said the no-expansion branch had `claude-profile-init.sh` rewrite the paths "at install
+time." That is withdrawn: `settings.json` is stow-symlinked into the repo, so an in-place post-stow edit
+would edit the **tracked repo file** and break §4.12's `git status --porcelain`-clean assertion, while
+replacing the symlink with a real copy would break the "every versioned entry is a symlink" assertion.
+Materialize-before-stow is the only branch that satisfies both.
 
 ### 4.6 Hard gates on the two irreversible operations (C6, C7)
 
@@ -600,6 +621,217 @@ directly relevant to Q2 and is reviewed as part of unit 1.
   carry everything functionally required, and a hostname overlay is treated as convenience only.
 - **I18** `accounts.json` carries `keenan@kjweb.dev` and is versioned. Low sensitivity (own domain;
   commit authorship already exposes an email) — accepted explicitly rather than by omission.
+
+### 4.12 `verify-fresh`'s script inventory is specified, not implied (round-2 Critical)
+
+Round 2 found — independently from two directions — that §4.2 fixed *whether* `doctor` can fail without
+ever specifying *what `verify-fresh` actually runs*. The only description of its contents (Section 3)
+predates units 4–5 and names none of the new installers, so SC5, SC9, SC10, and SC11 depended on an
+implied mechanism. That is the same vacuous-acceptance-test defect §4.2 was written to close.
+
+`verify-fresh` runs, in this order, in a clean `ubuntu:24.04` container as a **non-root sudo user whose
+username and UID differ from the live machine's** (required — otherwise SC6's "functions under a
+different `$HOME`" passes by accident):
+
+1. `bootstrap.sh` — which must itself now invoke, in order: `install-apt.sh` (per-`PLATFORM` lists) →
+   `install-gh.sh` → `install-docker.sh` → `install-cc-switcher.sh` (pinned) → `install-env.sh`
+   (materialize `*.example`) → the existing mise/nvim/starship steps.
+2. `stow-all.sh` — including the `mkdir -p` + `--no-folding` handling for the `claude` package (§4.1).
+3. `claude-profile-init.sh` for at least one synthetic profile — must precede the replay, because
+   `claude plugin install` writes into the *active* `~/.claude` profile path, so a profile must exist
+   first.
+4. `install-claude-plugins.sh` — the manifest replay.
+5. `stow-all.sh` **a second time**, asserting no error and no diff — proving idempotency, which I10's
+   review-then-`restow` workflow assumes is routine.
+6. `make doctor` — asserted to exit 0 **and** to emit no `MISSING:` line.
+7. `make audit` — all five classes clean (§4.8).
+8. Assertions: `~/.claude-shared` is a real directory, not a symlink; every versioned entry beneath it
+   is a symlink into the repo; `git status --porcelain` in the repo is clean; `env.sh` and `routes`
+   exist as real files; `~/.ssh/config` resolves with the intended `IdentityFile`; no tracked file under
+   `stow/claude/**` or `stow/env/**` contains `/home/keenan`; the regenerated
+   `installed_plugins.json` / `known_marketplaces.json` contain no path referencing the build user's
+   home in a non-portable form and no unresolvable `installPath`; a test commit **and** a test tag
+   succeed (SC9); `cca doctor` reports no unknown items and no missing/wrong shared symlink; and
+   `~/.claude-shared/keybindings.json` resolves to a real file.
+
+The `keybindings.json` assertion is called out separately because `cca doctor` **cannot** catch it:
+`cmd_doctor` checks only that each `SHARED_ITEMS` entry is a symlink whose *link text* matches
+`../../.claude-shared/$item` — never that the target resolves. `rrp/keybindings.json` is a
+correctly-pointed link to a nonexistent file and passes `cca doctor` silently today. That is precisely
+why the bug survived, and it means SC10 is not sufficient cover for I6.
+
+**Docker availability is not a bootstrap-ordering problem for `verify-fresh`**: it runs a container
+*from the host*, and `docker-ce` is already installed there. `install-docker.sh` exists so a *future*
+fresh box can reach the same state; `verify-fresh` exercises it inside the container without depending
+on it.
+
+### 4.13 Plugin manifest scope is bounded to user scope (round-2 Important)
+
+`packages/claude-plugins.txt` ("marketplace source, plugin id, scope") cannot express what the live
+state actually contains: multiple scopes per plugin, **project-scoped** installs keyed to a
+`projectPath` outside this repo (`roof-report-pro-web`), git-SHA version strings (`hookify` →
+`"unknown"` and `0b420de37255`), and duplicate records. Rather than grow the schema to model project
+paths that will not exist on a fresh box:
+
+**The manifest declares user-scope installs only.** Project-scoped plugin enablement is explicitly out
+of scope — it belongs to the project directory, not to machine provisioning, and a fresh box has no
+such directory to key on. `install-claude-plugins.sh` replays user-scope entries; project-scoped
+plugins are re-enabled per project by whoever works in it. This is added to the brief's Non-Goals.
+Consequence for the round-1 de-duplication (D7): dropping `superpowers@superpowers-marketplace` removes
+both its user-scope record (whose `installPath` is already gone) and its project-scope record from the
+declared set, which is the intended outcome.
+
+### 4.14 `make restow` and `make unlink` are broken today and must be fixed (round-2 Important)
+
+Two pre-existing Makefile bugs, both load-bearing for this design:
+
+- **`restow:` is followed by a tab-indented recipe line `unlink link`**, so `make restow` runs the shell
+  command `/usr/bin/unlink link` and fails — it does not run the `unlink` and `link` targets. I10's
+  entire "review hook diffs before any `restow`" workflow assumes `restow` works.
+- **`make unlink` bypasses `stow-all.sh`** with its own `find stow … | xargs stow -D {}` loop. So (a)
+  the per-package `--no-folding` handling added in §4.1 is not mirrored on unlink, leaving link and
+  unlink asymmetric for the `claude` package, and (b) unlike `stow-all.sh`'s forward loop it has **no
+  `-not -name hosts` filter**, so it attempts `stow -D hosts` — never stowed as a package, since the
+  overlays are stowed as `hosts/@common`, `hosts/$HOSTNAME`, `hosts/wsl`.
+
+Fix: make `restow` a real `unlink link` prerequisite chain, and give unlink a single shared codepath
+with link (an `unstow-all.sh`, or a mode flag on `stow-all.sh`) so package-specific flags and the
+`hosts` exclusion cannot drift between the two directions. `Makefile` is already in Files-Touched; this
+adds `unlink`/`restow` to its scope.
+
+### 4.15 Remaining round-2 Important items folded in
+
+- **Secret sweep covers everything newly tracked or modified, not only `stow/claude/**`.** R3 scoped it
+  to the 47 harness files; it also applies to `stow/tmux/.tmux.conf` (adopted verbatim),
+  `stow/bin/.local/bin/ccz`, `stow/ssh/.ssh/config`, `stow/mise/.config/mise/config.toml`,
+  `stow/zsh/.zshrc`, and everything under `packages/` and `scripts/`. *(`stow/ssh/.ssh/config` has since
+  been checked directly: a `Host *` default block and a commented-out `myserver.example.com` example —
+  no real hostnames, ports, or `ProxyJump`. Only the `IdentityFile` line needs correcting.)*
+- **The 9 incoming remote commits are swept before Task 0 merges them.** A `git merge` into a public
+  branch is exactly as history-permanent as the `git add` that C6 guards, and it happens in unit 1 —
+  *before* unit 2's `.gitignore` gate exists. Sweep them for secrets/tokens/IPs/hostnames first.
+- **Both irreversible-op gates are scripted, not typed.** `scripts/assert-gitignore-safe.sh` loops the
+  never-versioned list with `git check-ignore -q` and fails loudly; the archive `ls-remote` SHA match is
+  likewise a script step. D16 explicitly rejects house style — a manually-typed sequence *is* house
+  style.
+- **A hook-diff gate is a mechanism, not a policy** — see §4.16, which supersedes this bullet's
+  original `restow`-based proposal.
+- **Installer ordering:** within `bootstrap.sh`, `install-cc-switcher.sh` runs before the harness steps.
+  The full canonical order — including where `stow-all.sh` sits relative to `claude-profile-init.sh` and
+  `install-claude-plugins.sh` — is **§4.12 steps 1–8 and only §4.12**. (An earlier draft of this bullet
+  listed `stow-all.sh` last, which was wrong: `claude-profile-init.sh` creates per-profile symlinks
+  pointing at `../../.claude-shared/*`, so the claude package must already be stowed or those links
+  dangle on creation — the exact defect I6 documents.)
+- **Tool-ownership rule resolves its own example.** §4.8's mechanism-based phrasing did not settle
+  `bottom`. The disambiguating rule: **any tool with a maintained apt package is apt-owned regardless of
+  whether a cargo/npm package also exists; mise is reserved for language runtimes and for tools apt does
+  not package.** So `bottom` → apt (removed from mise), `eza` → apt if packaged on the target release
+  else mise, `zellij`/`just` → mise. Cargo-direct binaries are removed either way.
+- **`audit.sh` gains a fifth class:** binaries in `~/.cargo/bin` not attributable to a mise-managed
+  install. Without it, "no direct cargo install" (SC3) is a one-time cleanup rather than an enforced
+  invariant — the four existing classes structurally cannot see a tool that appears in neither list.
+- **Path-reversal ownership disambiguated.** `claude-path-template.sh` is the general
+  parameterizer/reverser for shell, hook, and skill files. `claude-profile-init.sh` additionally
+  rewrites `settings.json`'s permission globs and `additionalDirectories` at profile-creation time **in
+  the no-expansion branch only**. Files-Touched row for `claude-path-template.sh` is corrected
+  accordingly.
+- **`keybindings.json` is added to the Files-Touched enumeration** for
+  `stow/claude/.claude-shared/**`, not only to §4.10 — the Design Contract is what downstream skills
+  read first.
+- **`.migration_backups/` restore path is named:** `scripts/merge-from-backup.sh` already exists in the
+  repo for this purpose and is the documented rollback for a failed per-package reconciliation. The
+  off-machine copy destination must be an existing private encrypted target — explicitly not another
+  public remote or an unencrypted share.
+- **`audit.sh` joins the `PLATFORM` consumer list** in Domain Types (it must union the three split
+  lists per `$PLATFORM`).
+- **D17 lists five units, not four** — a wording miscount, corrected in both documents.
+- **SC1 gets a mechanical check:** each of the 3 local-only and 9 remote-only commits (or its content)
+  is verified an ancestor of the merged `main` via `git merge-base --is-ancestor`, rather than "`git log`
+  shows … reconciled".
+- **Unit 5 is internally checkpointed** rather than one undivided step: vendor + template → D8
+  relocation + replay → D7 collapse + superpowers de-dup → `keybindings.json` → final SC5/SC6/SC11
+  verification. It is the only unit that writes into live `~/.claude-shared` / `~/.claude-accounts`
+  state, so it gets the same staging rigor as the irreversible operations.
+- **Per-package reconciliation is assigned to units.** Round 1 mapped only `git`→unit 1 and
+  `zellij`→unit 3, leaving `nvim`, `zsh`, `env`, `bin`, `ssh`, `tmux` — including HC10's nvim
+  precondition, the highest-risk item — unscheduled. They land in a new **unit 3.5 (per-package stow
+  reconciliation)**, with HC10's commit-and-verify gate ordered first within it and §4.9's post-merge
+  re-diff of `zsh`/`env`/`nvim` as its entry condition.
+
+### 4.16 The hook gate must sit on the execution path, not on `make restow` (round-3 Critical)
+
+Round 3 found that §4.15's original mitigation does not cover the vector I10 names. Because the `claude`
+package is stowed `--no-folding`, **each hook is an individual symlink into the repo working tree**. So a
+`git pull` that only changes a vendored hook's *contents* needs no `stow`, no `restow`, and no `link` —
+the existing symlink already resolves to the new bytes, and the changed code auto-executes on the next
+Claude Code session. A `restow` precondition guards a step that a content-only change never takes. The
+mitigation was, in effect, unreachable.
+
+The gate therefore moves onto the path that actually precedes execution:
+
+1. A manifest of reviewed content — a hash over `stow/claude/.claude-shared/{hooks,skills,commands}/**`
+   plus the commit SHA it was reviewed at — is stored outside the stowed tree (machine-local,
+   gitignored).
+2. A **session-start check** (a Claude Code `SessionStart` hook, and/or a check in
+   `shell-integration.sh`, which is sourced by every new shell) recomputes that hash and, on mismatch,
+   surfaces the diff and refuses to proceed silently — it does not matter whether `stow`, `restow`, or
+   nothing at all was run in between.
+3. `make restow` keeps a diff prompt as a convenience, but it is no longer the enforcement point.
+
+Constraint on the implementation: the check must be cheap (a hash over ~47 small files) and must fail
+**closed** in the sense of warning loudly, not fail open silently — the failure mode this whole item
+exists to prevent. Note the bootstrapping subtlety: the checker itself lives in the versioned tree it
+checks, so its own integrity rests on the same `git pull`. That is acceptable — the goal is to stop
+*unnoticed* change, not to defend against an attacker who already controls the repo — but it should be
+stated rather than implied.
+
+An alternative the design explicitly does **not** adopt: routing pulls through a staging clone that is
+diffed before merging into the checkout stow reads from. It is stronger, but it changes the daily git
+workflow for every package, not just `claude`, and HC1/D18 already commit to living with a second
+machine pushing to this repo.
+
+### 4.17 Round-3 Important items
+
+- **The `claude` CLI itself is never provisioned.** `install-claude-plugins.sh` and
+  `claude-profile-init.sh` both shell out to `claude` / `cca`, and §4.12 steps 3–4 run them inside a
+  from-scratch `ubuntu:24.04` container — but no apt entry, mise tool, or installer script for the
+  Claude Code CLI appears anywhere in `packages/*`, `bootstrap.sh`, or Files-Touched, and `doctor` does
+  not check for it. Either add an installer (and a `doctor` check) or state as an explicit Non-Goal that
+  the CLI is provisioned by Anthropic's own mechanism and out of scope — in which case §4.12 steps 3–4
+  must be conditional on its presence so SC2/SC12 do not fail for an out-of-scope reason.
+- **Two live `plugins/` entries are unclassified:** `.last_inuse_sweep` and
+  `plugins/workflow-navigator.bak-20260724/` appear in neither the Versioned list, the
+  gitignored-as-regenerable list, nor C6's never-versioned enumeration — the same unclassified-entry gap
+  as `keybindings.json`. Both are machine-local runtime debris: add them to the gitignored set, and drop
+  the `.bak` directory outright (D8 makes it obsolete). Better: generate
+  `assert-gitignore-safe.sh`'s coverage from a scan of the live tree and **fail on any entry classified
+  as neither versioned nor ignored**, so the next undocumented file cannot repeat this.
+- **GPG signing inside the `verify-fresh` container needs a specified mechanism.** SC9 asserts a test
+  commit and tag succeed while `commit.gpgsign`/`tag.gpgSign` are true. Do **not** copy the real secret
+  key into a build context or image layer. Use a disposable container-local test key generated at run
+  time and scope SC9 to "signing mechanics work end-to-end"; the real key's usability is verified once on
+  the host in unit 1, not per container run.
+- **The stray `~/.ssh/.id_ed25519.pub.swp` removal gets an assertion,** not just prose: unit 3.5 removes
+  it and `verify-fresh`/the reconciliation script asserts `[[ ! -e ~/.ssh/.id_ed25519.pub.swp ]]`. Low
+  severity — it shadows a *public* key — but it is the one ssh item stated without a check.
+- **`verify-fresh` is scaffolded in unit 4 and completed in unit 5.** §4.12's steps 3–4 depend on
+  unit-5 deliverables, so "unit 4 delivers verify-fresh" must not be read as delivering the full §4.12
+  script. Unit 4 lands stow mechanics + `doctor` + package lists; unit 5 adds profile-init and the replay.
+- **`install-apt.sh`'s cwd dependency** (`packages/apt.txt` relative, working only because
+  `bootstrap.sh` `cd`s first) is fixed to `$DOTFILES_ROOT`-relative addressing while the file is being
+  modified anyway for the `PLATFORM` split — matching `audit.sh`'s existing pattern.
+- **Task 0 merge-conflict guidance:** if the merge produces textual conflicts in `zsh`/`env`/`nvim`,
+  keep **both** sides' content pending unit 3.5's re-diff rather than dropping either — SC1's
+  ancestry check protects commits, not content.
+- **Starship's `curl | bash`** is reconsidered rather than merely noted: once `install-gh.sh` /
+  `install-docker.sh` establish the pinned-fingerprint pattern, extending it to starship (checksum-pinned
+  release, or provision via mise/apt) is cheap. If it is still left as-is, that is recorded as an accepted
+  risk in the brief, not only in the design.
+- **Unverified — for `codebase-scan` to resolve, not assumed here:** (a) whether the container's non-root
+  user has passwordless `sudo` configured, which `install-apt.sh`, the two new apt-repo installers, and
+  `set-default-shell-zsh.sh` all require non-interactively; (b) whether `cca` supports fully
+  non-interactive profile creation in a TTY-less container. Either being false blocks unit 4/5 and should
+  surface before implementation, not at `verify-fresh` runtime.
 
 ### 4.11 Factual corrections to Sections 1–3
 

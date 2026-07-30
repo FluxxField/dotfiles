@@ -429,6 +429,71 @@ expiry**); trust `u` = ultimate. `pub rsa3072/6C32D9329BDB7DA9 2024-03-15 [SC]`,
 the user's call. Check with:
 `gh auth refresh -h github.com -s admin:gpg_key && gh api user/gpg_keys`.
 
+### **NEW (round-2 follow-up) — `make restow` is broken and `make unlink` bypasses `stow-all.sh`**
+
+`cat -A` of the Makefile confirms `restow:` is followed by a **tab-indented recipe line**, not
+prerequisites:
+
+```
+restow:$
+^Iunlink link$
+```
+
+So `make restow` runs the shell command `unlink link` (coreutils `/usr/bin/unlink` against a file named
+`link`), which fails — it does **not** run the `unlink` and `link` targets. Pre-existing bug.
+
+`make unlink` has its **own** stow loop that does not go through `stow-all.sh`:
+
+```make
+unlink:
+	find stow -maxdepth 1 -mindepth 1 -type d -printf "%f\n" | xargs -I{} stow -d stow -t $$HOME -D {}
+```
+
+Two consequences: (1) any per-package flag handling added to `stow-all.sh` (e.g. `--no-folding` for
+`claude`) is **not** mirrored here, so unlink is asymmetric with link; (2) unlike `stow-all.sh`'s
+forward loop, this one has **no `-not -name hosts` filter**, so it attempts `stow -D hosts` — a
+directory that was never stowed as a package (the overlays are stowed as `hosts/@common`,
+`hosts/$HOSTNAME`, `hosts/wsl`). `make link` does call `bash stow-all.sh`.
+
+### **NEW (round-2 follow-up) — `cca doctor` scan scope, and why it missed `keybindings.json`**
+
+`cca::untracked_items()` (cca-lib.sh) scans **only the per-account directory**:
+
+```bash
+cca::untracked_items() { # <slug>
+  local dir e; dir="$(cca::account_dir "$1")"      # = $ACCOUNTS_DIR/$slug
+  [ -d "$dir" ] || return 0
+  while IFS= read -r e; do
+    cca::is_known_item "$e" || printf '%s\n' "$e"
+  done < <(find "$dir" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)
+}
+```
+
+It does **not** scan `~/.claude-shared`. Two consequences for the design:
+
+1. **D8 is achievable without touching `cc-account-switcher`.** Moving `local-marketplace` out of
+   `~/.claude-accounts/rrp/` into `~/.claude-shared/` makes the unknown-item warning disappear on its
+   own, because the scan only looks at the account dir. Nothing needs adding to `SHARED_ITEMS`, so the
+   Non-Goal boundary holds.
+2. **`cmd_doctor` cannot detect a dangling shared symlink.** For each `SHARED_ITEMS` entry it checks
+   only `[ ! -L "$dir/$item" ] || [ "$(readlink …)" != "../../.claude-shared/$item" ]` — link presence
+   and link *text*, never whether the target resolves. `rrp/keybindings.json` is a correctly-pointed
+   symlink to a file that does not exist, so it passes `cca doctor` silently. That is why the bug went
+   unnoticed, and it means SC10 (`cca doctor` clean) will **not** catch it — `keybindings.json` needs
+   its own explicit criterion.
+
+Also confirmed from `cmd_doctor`: it already reports `PROBLEM: rrp/settings.json symlink missing/wrong`
+today, because `settings.json` is in `SHARED_ITEMS` and `rrp`'s is a real file — independent
+confirmation of D7's premise. And its header comment records that a dangling `~/.claude` default link
+"is how all 14 hooks broke on 2026-07-23".
+
+### **NEW (round-2 follow-up) — `stow/ssh/.ssh/config` carries no network topology**
+
+Full content: a header comment, one `Host *` block (`AddKeysToAgent yes`,
+`IdentityFile ~/.ssh/id_ed25519`, `ServerAliveInterval 60`, `ServerAliveCountMax 3`), and a
+**commented-out** example host (`myserver.example.com`). No real hostnames, ports, or `ProxyJump`
+entries. The only correction it needs is the `IdentityFile` line. No endpoint-exposure concern.
+
 ## Tracked→gitignored transitions the design implies
 
 Two files are **currently tracked** but designed to become gitignored-with-a-committed-`.example`:
