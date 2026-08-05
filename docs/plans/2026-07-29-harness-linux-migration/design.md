@@ -1122,3 +1122,17 @@ So `stow-all.sh` needs **no change** — it sees an ordinary package directory. 
 
 **Not changed:** the public repo still discloses the harness *exists* (a `.gitmodules` entry naming a URL
 that 404s without access). That is accepted and not worth engineering around.
+
+**What the split does NOT cover — do not assume HC5 is now handled.** Going private protects the
+harness only. Two items remain bound for the **public** repo and still need their original mitigations:
+
+- **`ccz` → `stow/bin/.local/bin/ccz` (public `bin` package).** Verified still present: the Tailscale IP
+  is hardcoded in a comment at line 4 (`ssh keenan@<ip>  then  zellij attach <name>`). The `bin` package
+  is not moving, so §4.4's templating requirement stands unchanged.
+- **`stow/ssh/.ssh/config` (public `ssh` package).** Audited and clean — a generic `Host *` block with
+  `AddKeysToAgent`/`IdentityFile`/`ServerAlive*`, and the only hostname anywhere in the nine public
+  packages is the placeholder `myserver.example.com`. No mitigation needed; recorded so a later reader
+  does not have to re-derive it.
+
+The failure mode to avoid is treating "we went private" as a blanket HC5 answer. It is not — it is an
+answer for one package out of ten.
