@@ -27,10 +27,17 @@
    `shell-snapshots/`, `stats/`, `debug/`, `plugins/{cache,data,marketplaces}/`,
    `installed_plugins.json`, `known_marketplaces.json`, `plugin-catalog-cache.json`, `blocklist.json`,
    `handoffs/`, **`settings.json.bak*`**, **`routes`**, `.last_inuse_sweep`, and
-   `plugins/workflow-navigator.bak-20260724/`. The remote is public. The harness-state `.gitignore`
-   rules land in their own verified commit **before** the first harness `git add`; `git add -A` is never
-   used while staging the harness. `.gitignore` does not remove anything retroactively and HC3 forbids
-   the force-push that would, so this ordering is a one-way door.
+   `plugins/workflow-navigator.bak-20260724/`. **`dotfiles` is public; `claude-harness` is private
+   (§4.22) — the rule binds in both histories, and privacy is not a substitute for the exclusions,
+   because a private repo can still be shared, forked, or made public later.** The harness-state
+   `.gitignore` rules land in their own verified commit **before** the first harness `git add`;
+   `git add -A` is never used while staging the harness. `.gitignore` does not remove anything
+   retroactively and HC3 forbids the force-push that would, so this ordering is a one-way door.
+   *(Revised round 5, after the user's visibility decision: the harness moves to a private repo as a
+   submodule at `stow/claude/`. Verified first that this cost nothing retroactively — zero tracked files
+   and zero commits under `stow/claude`, because unit 5 had never run. The exclusions above were
+   committed to `claude-harness` in its own first commit, before any content, preserving this same
+   ordering in a repo whose history was still empty.)*
    *(Revised: round 3 found this list was a strict subset of the design's, and the omission was not
    harmless — **both `settings.json.bak*` files were verified to contain the `CC_NTFY_TOPIC` literal
    `rrp-cc-<REDACTED>`** that HC5 exists to keep out of tracked content, plus 20 and 6 hardcoded
@@ -278,3 +285,13 @@ unit 2 must precede any harness `git add`, and unit 5 depends on 2 and 4:
     against HC5 and never pointed HC5 at the design. The literals are now redacted, but HC3 forbids the
     force-push that would scrub history, so **rotating `CC_NTFY_TOPIC` is the only real mitigation and is
     the user's call** — see §4.20.)*
+19. **NEW (round 5) — the harness is private and consumed as a submodule.** `stow/claude/` is a git
+    submodule pointing at `FluxxField/claude-harness` (private); `FluxxField/dotfiles` stays public for
+    the nine shell/editor packages. `make verify-fresh` provisions the submodule **without a token in
+    the build context** — via a host-supplied git bundle or read-only bind-mount, the same mechanism
+    `CCA_SOURCE` uses for `cc-account-switcher` (§4.18). Both private dependencies share one mechanism.
+    *(Round 5, user decision. Justified by §4.20: a secret scanner catches credentials, not judgment,
+    and 16 of the 47 harness files reference internal project names. Verified empirically that this
+    needs **no** change to `stow-all.sh` — stow does not link a submodule's `.git` into `$HOME`, nor a
+    package root's `.gitignore`/`README.md`, per the built-in list in `Stow.pm`'s `__DATA__`. The cost
+    is one `git submodule update --init` in `bootstrap.sh`, not a second stow source.)*
