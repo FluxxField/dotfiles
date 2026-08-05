@@ -1056,3 +1056,69 @@ every shell (the `a48b128` defect §4.19 records). It is currently absent from l
 the repo. Unit 3.5 should fix it while doing the union merge rather than faithfully propagating it —
 but it must be a deliberate edit, recorded, not a silent drop that looks identical to the `--adopt`
 data loss described above.
+
+---
+
+### 4.22 The harness moves to a private repo — HC4 is restructured, not relaxed
+
+**User decision, 2026-07-30.** The Claude Code harness will **not** be published. `FluxxField/dotfiles`
+stays public for `zsh`/`nvim`/`tmux`/`zellij`/`mise`/`git`/`ssh`/`bin`/`env`/`gnupg`; the harness moves to
+**`FluxxField/claude-harness` (private, created and verified `PRIVATE`)**, consumed as a git submodule at
+`stow/claude/`.
+
+**Why.** The harness is not shareable content. The global `CLAUDE.md` carries business context, an
+incident disclosure, and measured operational detail; **16 of the 47 files reference internal project
+names and 8 contain the operator's username**. None of that is regex-detectable, and §4.20 is the proof
+that matters: HC5 was violated in plain sight across eight planning documents, through three adversarial
+review rounds, while the design was carefully engineering around the *same value* in `settings.json`. A
+scanner catches credentials; it does not catch judgment. The control therefore has to be structural.
+
+**The timing is the whole reason this is cheap.** Verified before deciding: `git ls-files stow/claude` →
+**0**, `git log --all -- stow/claude` → **0 commits**, and `stow/claude` does not exist in the worktree.
+Unit 5 was never run, so **no harness content has ever been committed to the public remote.** There is
+nothing to scrub, and HC3's no-force-push rule is not engaged. This is exactly the C6/HC4 ordering
+principle paying off — the one-way door was identified before anyone walked through it.
+
+**Architecture: submodule, not a second stow source.** The option was costed as "second stow source in
+`stow-all.sh`, `verify-fresh` clones two repos". Two empirical checks made the cheaper structure
+available:
+
+| Question | Method | Result |
+|---|---|---|
+| Would a submodule's `.git` be linked into `$HOME`? | Stowed a package containing a `gitdir:` file into a scratch target | **No** — only the payload linked |
+| Would the harness repo's own `.gitignore`/`README.md` be stowed? | Same, with both files at package root | **No** — neither appeared |
+
+Confirmed against the built-in list in `Stow.pm`'s `__DATA__` section: `\.git`, `\.gitignore`,
+`^/README.*`, `^/LICENSE.*`. Note the `^/` anchor on the last two — a `README.md` *inside* a skill
+directory is still stowed, which is the desired behaviour. (`\.gitmodules` is **not** in the list; it is
+irrelevant here because it lives at the dotfiles root, not inside the package.)
+
+So `stow-all.sh` needs **no change** — it sees an ordinary package directory. The cost collapses to one
+`git submodule update --init` in `bootstrap.sh`.
+
+**Consequences.**
+
+- **HC4 is restructured, not relaxed.** It becomes: *the `dotfiles` remote is public and the
+  `claude-harness` remote is private; no credentials, transcripts, or machine state enter **either**
+  history.* Every gate is retained unchanged — defence in depth, and a private repo can still be shared,
+  forked, or made public later. Privacy is not a substitute for the exclusions.
+- **The exclusions are already in place.** `claude-harness` was seeded with its `.gitignore` in its own
+  first commit, before any content — the same C6 ordering used in `dotfiles`, applied to a repo whose
+  history is still empty.
+- **Gates stay in the public repo.** `scripts/assert-gitignore-safe.sh` and
+  `packages/harness-manifest.txt` hold path classifications, not content. Both are already
+  parameterizable — `REPO` is env-overridable and `PKG_PREFIX` is a single line, which becomes
+  `.claude-shared` when pointed at the submodule. There is value in the public repo carrying the tooling
+  that proves the private one is safe.
+- **`settings.json` is gitignored in the harness repo** per §4.5 Branch B, with a tracked `.example`
+  materialized by `install-env.sh` before `stow-all.sh`.
+- **`verify-fresh` now needs read access to a private repo.** This is the §4.18 problem again, and the
+  same answer applies verbatim: **do not inject a token into the build context.** Feed the submodule from
+  the host via a git bundle or a read-only bind-mount, exactly as `CCA_SOURCE` does for
+  `cc-account-switcher`. Both private dependencies can share one mechanism.
+- **Units 4 and 5 need replanning against this**, which is why neither was planned yet. Unit 5 vendors
+  into the submodule rather than into `dotfiles`, and unit 4's `verify-fresh` grows the private-source
+  handling above.
+
+**Not changed:** the public repo still discloses the harness *exists* (a `.gitmodules` entry naming a URL
+that 404s without access). That is accepted and not worth engineering around.
