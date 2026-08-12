@@ -45,6 +45,10 @@ ignored    plugins/.last_inuse_sweep
 ignored    plugins/workflow-navigator
 ignored    plugins/workflow-navigator.bak-20260724/
 ignored    handoffs/
+# snapshots/ records which sessions were open together so a reboot can replay
+# them (cca snapshot/restore). Machine-local by nature: it holds live pids and
+# absolute cwds, which mean nothing on another box.
+ignored    snapshots/
 ignored    routes
 ignored    settings.json.bak-20260723-103211
 ignored    settings.json.bak2-105016

@@ -32,6 +32,9 @@ stow/claude/.claude-shared/plugins/workflow-navigator.bak-20260724/
 
 # Machine-local runtime state.
 stow/claude/.claude-shared/handoffs/
+# snapshots/ records which sessions were open together, for cca snapshot/restore.
+# Holds live pids and absolute cwds — meaningless on another machine.
+stow/claude/.claude-shared/snapshots/
 # routes maps absolute project paths to accounts — machine-local by nature (D12).
 # routes.example is tracked; the real file is not.
 stow/claude/.claude-shared/routes
